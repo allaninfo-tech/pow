@@ -56,8 +56,7 @@ export default function Topbar() {
     const { ui, toggleSidebar, unreadNotifications, toggleNotifications } = useStore();
 
     return (
-        <header className="h-16 border-b border-white/[0.06] flex items-center gap-4 px-6 sticky top-0 z-30 backdrop-blur-xl"
-            style={{ background: 'rgba(6,11,20,0.85)' }}
+        <header className="topbar-container h-16 border-b flex items-center gap-4 px-6 sticky top-0 z-30 backdrop-blur-xl"
         >
             {/* Mobile menu toggle */}
             <button

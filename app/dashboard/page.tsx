@@ -7,11 +7,35 @@ import { mockChallenges } from '@/lib/mock/challenges';
 import LeagueBadge from '@/components/ui/LeagueBadge';
 import Avatar from '@/components/ui/Avatar';
 import { cn, getScoreColor, formatTimeUntil, formatRelativeTime, getRoleIcon, formatNumber, getTierLabel } from '@/lib/utils';
-import { Zap, TrendingUp, Code2, Star, Clock, ArrowRight, Flame, Target, GitCommit, Award } from 'lucide-react';
+import { Zap, TrendingUp, Code2, Star, Clock, ArrowRight, Flame, Target, GitCommit, Award, AlertTriangle, Users, Trophy, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import {
     RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
 } from 'recharts';
+
+function getGreeting(): { text: string; emoji: string } {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: 'Good morning', emoji: '☀️' };
+    if (hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
+    if (hour < 21) return { text: 'Good evening', emoji: '🌆' };
+    return { text: 'Good night', emoji: '🌙' };
+}
+
+const activityFeed = [
+    { type: 'submission' as const, text: 'Submitted "Developer Portfolio CMS with GitHub Sync"', time: '11d ago', icon: GitCommit },
+    { type: 'score' as const, text: 'Received AI score of 77 for Portfolio CMS', time: '10d ago', icon: Star },
+    { type: 'league' as const, text: 'Promoted to Pro League! 🎉', time: '9d ago', icon: Trophy },
+    { type: 'squad' as const, text: 'Joined Squad "Sigma Protocol"', time: '7d ago', icon: Users },
+    { type: 'submission' as const, text: 'Submitted "FinTech Real-Time Dashboard"', time: '5d ago', icon: GitCommit },
+    { type: 'score' as const, text: 'Received AI score of 76 for FinTech Dashboard', time: '4d ago', icon: Star },
+];
+
+const activityColors = {
+    submission: 'text-cyan-400 bg-cyan-500/15',
+    score: 'text-amber-400 bg-amber-500/15',
+    league: 'text-emerald-400 bg-emerald-500/15',
+    squad: 'text-indigo-400 bg-indigo-500/15',
+};
 
 function ScoreRadar({ scores }: { scores: { codeQuality: number; architecture: number; performance: number; security: number; requirementAdherence: number } }) {
     const data = [
@@ -39,7 +63,7 @@ function ScoreRadar({ scores }: { scores: { codeQuality: number; architecture: n
 export default function DashboardPage() {
     const { currentUser } = useStore();
     const activeChallenges = mockChallenges.filter(c => c.status === 'Active').slice(0, 3);
-    const latestSubmission = mockSubmissions[0];
+    const greeting = getGreeting();
 
     const avgScores = {
         codeQuality: 76,
@@ -59,13 +83,13 @@ export default function DashboardPage() {
     return (
         <AppShell>
             <div className="max-w-7xl mx-auto space-y-6">
-                {/* Welcome header */}
+                {/* Welcome header with time-of-day greeting */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <Avatar initials={currentUser.avatar} size="lg" online />
                         <div>
                             <h1 className="text-2xl font-bold text-white">
-                                Welcome back, <span className="text-gradient">{currentUser.displayName.split(' ')[0]}</span>
+                                {greeting.emoji} {greeting.text}, <span className="text-gradient">{currentUser.displayName.split(' ')[0]}</span>
                             </h1>
                             <div className="flex items-center gap-2 mt-1">
                                 <LeagueBadge league={currentUser.league} size="sm" />
@@ -78,10 +102,14 @@ export default function DashboardPage() {
                     </Link>
                 </div>
 
-                {/* Stats row */}
+                {/* Animated stats row */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stats.map(({ label, value, icon: Icon, color, sub }) => (
-                        <div key={label} className="stat-card">
+                    {stats.map(({ label, value, icon: Icon, color, sub }, idx) => (
+                        <div
+                            key={label}
+                            className="stat-card animate-slide-up"
+                            style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
+                        >
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs text-slate-500 font-medium">{label}</span>
                                 <Icon size={16} className={color} />
@@ -141,9 +169,9 @@ export default function DashboardPage() {
                         </div>
                     </div>
 
-                    {/* Center/Right col: Active challenges + recent subs */}
+                    {/* Center/Right col: Active challenges + timeline + tech */}
                     <div className="lg:col-span-2 space-y-4">
-                        {/* Active challenges */}
+                        {/* Active challenges with urgency pulse */}
                         <div className="glass-card p-5">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
@@ -155,26 +183,38 @@ export default function DashboardPage() {
                                 </Link>
                             </div>
                             <div className="space-y-3">
-                                {activeChallenges.map((ch) => (
-                                    <Link key={ch.id} href={`/challenges/${ch.id}`}>
-                                        <div className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/20 hover:bg-indigo-500/[0.04] transition-all cursor-pointer">
-                                            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 border border-indigo-500/20 flex items-center justify-center flex-shrink-0">
-                                                <Zap size={16} className="text-indigo-400" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm font-medium text-slate-200 truncate">{ch.title}</p>
-                                                <p className="text-xs text-slate-500">Tier {ch.tier} · {getTierLabel(ch.tier)} · {ch.mode}</p>
-                                            </div>
-                                            <div className="text-right flex-shrink-0">
-                                                <div className="flex items-center gap-1 text-xs text-slate-400">
-                                                    <Clock size={11} />
-                                                    {formatTimeUntil(ch.deadline)}
+                                {activeChallenges.map((ch) => {
+                                    const timeLeft = new Date(ch.deadline).getTime() - Date.now();
+                                    const isUrgent = timeLeft < 86400000 * 2; // < 48h
+                                    return (
+                                        <Link key={ch.id} href={`/challenges/${ch.id}`}>
+                                            <div className={cn(
+                                                'flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/20 hover:bg-indigo-500/[0.04] transition-all cursor-pointer',
+                                                isUrgent && 'border-rose-500/20 bg-rose-500/[0.03] hover:border-rose-500/30'
+                                            )}>
+                                                <div className={cn(
+                                                    'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
+                                                    isUrgent
+                                                        ? 'bg-gradient-to-br from-rose-500/20 to-amber-500/10 border border-rose-500/20'
+                                                        : 'bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 border border-indigo-500/20'
+                                                )}>
+                                                    {isUrgent ? <AlertTriangle size={16} className="text-rose-400" /> : <Zap size={16} className="text-indigo-400" />}
                                                 </div>
-                                                <p className="text-[10px] text-slate-600">{ch.submissionsCount} submitted</p>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-sm font-medium text-slate-200 truncate">{ch.title}</p>
+                                                    <p className="text-xs text-slate-500">Tier {ch.tier} · {getTierLabel(ch.tier)} · {ch.mode}</p>
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    <div className={cn('flex items-center gap-1 text-xs', isUrgent ? 'text-rose-400 font-semibold' : 'text-slate-400')}>
+                                                        <Clock size={11} className={isUrgent ? 'animate-pulse' : ''} />
+                                                        {formatTimeUntil(ch.deadline)}
+                                                    </div>
+                                                    <p className="text-[10px] text-slate-600">{ch.submissionsCount} submitted</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    </Link>
-                                ))}
+                                        </Link>
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -207,6 +247,35 @@ export default function DashboardPage() {
                             </div>
                         </div>
 
+                        {/* Activity Timeline */}
+                        <div className="glass-card p-5">
+                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                                <CheckCircle2 size={16} className="text-emerald-400" />
+                                Activity Timeline
+                            </h2>
+                            <div className="relative">
+                                {/* Timeline line */}
+                                <div className="absolute left-[17px] top-2 bottom-2 w-px bg-gradient-to-b from-indigo-500/30 via-cyan-500/20 to-transparent" />
+                                <div className="space-y-3">
+                                    {activityFeed.map((item, idx) => {
+                                        const Icon = item.icon;
+                                        const colorClass = activityColors[item.type];
+                                        return (
+                                            <div key={idx} className="flex items-start gap-3 relative pl-1">
+                                                <div className={cn('w-[34px] h-[34px] rounded-lg flex items-center justify-center flex-shrink-0 z-10', colorClass)}>
+                                                    <Icon size={14} />
+                                                </div>
+                                                <div className="flex-1 min-w-0 pt-1">
+                                                    <p className="text-sm text-slate-300">{item.text}</p>
+                                                    <p className="text-[10px] text-slate-600 mt-0.5">{item.time}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Tech stack */}
                         <div className="glass-card p-5">
                             <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
@@ -235,3 +304,4 @@ export default function DashboardPage() {
         </AppShell>
     );
 }
+

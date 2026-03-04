@@ -2,6 +2,7 @@
 
 import Sidebar from '@/components/layout/Sidebar';
 import Topbar from '@/components/layout/Topbar';
+import NotificationsPanel from '@/components/layout/NotificationsPanel';
 import { useStore } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
@@ -17,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     {children}
                 </main>
             </div>
+            <NotificationsPanel />
         </div>
     );
 }

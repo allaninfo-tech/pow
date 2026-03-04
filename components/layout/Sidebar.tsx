@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store';
+import { useTheme } from '@/lib/theme';
 import { cn, getLeagueIcon, getAvatarColor } from '@/lib/utils';
 import {
     LayoutDashboard,
@@ -17,6 +18,8 @@ import {
     Settings,
     LogOut,
     Terminal,
+    Moon,
+    Sun,
 } from 'lucide-react';
 
 const navItems = [
@@ -31,17 +34,16 @@ const navItems = [
 export default function Sidebar() {
     const pathname = usePathname();
     const { ui, toggleSidebar, currentUser, unreadNotifications, toggleNotifications } = useStore();
+    const { resolvedTheme, setTheme } = useTheme();
     const collapsed = ui.sidebarCollapsed;
 
     return (
         <aside
             className={cn(
-                'flex flex-col h-screen sticky top-0 z-40 transition-all duration-300 ease-in-out',
-                'border-r border-white/[0.06]',
-                'bg-gradient-to-b from-navy-800 to-navy-900',
+                'sidebar-container flex flex-col h-screen sticky top-0 z-40 transition-all duration-300 ease-in-out',
+                'border-r',
                 collapsed ? 'w-[68px]' : 'w-[240px]'
             )}
-            style={{ background: 'linear-gradient(180deg, #0a0e1a 0%, #060b14 100%)' }}
         >
             {/* Logo */}
             <div className={cn(
@@ -100,6 +102,16 @@ export default function Sidebar() {
                     <Settings size={18} />
                     {!collapsed && <span>Settings</span>}
                 </Link>
+
+                {/* Theme toggle */}
+                <button
+                    onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+                    className={cn('nav-item w-full', collapsed && 'justify-center px-0')}
+                    title={collapsed ? (resolvedTheme === 'dark' ? 'Light mode' : 'Dark mode') : undefined}
+                >
+                    {resolvedTheme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+                    {!collapsed && <span>{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
+                </button>
 
                 {/* User card */}
                 <div className={cn(
