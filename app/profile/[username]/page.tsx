@@ -90,6 +90,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                     ))}
                 </div>
 
+                {/* Contribution Heatmap */}
+                <div className="glass-card p-5">
+                    <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                        <GitCommit size={16} className="text-cyan-400" /> Submission Activity
+                    </h2>
+                    <div className="flex gap-[3px] overflow-x-auto pb-1">
+                        {Array.from({ length: 52 }, (_, week) => (
+                            <div key={week} className="flex flex-col gap-[3px]">
+                                {Array.from({ length: 7 }, (_, day) => {
+                                    const seed = (week * 7 + day + user.globalRank) % 17;
+                                    const level = seed < 7 ? 0 : seed < 11 ? 1 : seed < 14 ? 2 : seed < 16 ? 3 : 4;
+                                    return <div key={day} className="heatmap-cell" data-level={level} title={`Week ${week + 1}, Day ${day + 1}`} />;
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-2 mt-3 text-xs text-slate-500">
+                        <span>Less</span>
+                        {[0, 1, 2, 3, 4].map(l => <div key={l} className="heatmap-cell" data-level={l} />)}
+                        <span>More</span>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Score Radar */}
                     <div className="glass-card p-5">

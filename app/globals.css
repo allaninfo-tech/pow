@@ -809,3 +809,110 @@ pre {
   border: 2px solid rgba(255, 255, 255, 0.1);
   color: var(--text-muted);
 }
+
+/* ─── Print Styles (Resume Page) ────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .sidebar-container,
+  .topbar-container,
+  nav,
+  .btn-primary,
+  .btn-ghost,
+  [class*="notifications"],
+  button {
+    display: none !important;
+  }
+
+  .glass-card {
+    background: white !important;
+    border: 1px solid #e2e8f0 !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .text-white,
+  .text-slate-200,
+  .text-slate-300 {
+    color: #1e293b !important;
+  }
+
+  .text-slate-400,
+  .text-slate-500 {
+    color: #64748b !important;
+  }
+
+  .text-gradient {
+    background: none !important;
+    -webkit-text-fill-color: #6366f1 !important;
+  }
+
+  .progress-bar {
+    background: #e2e8f0 !important;
+  }
+
+  .progress-fill {
+    background: #6366f1 !important;
+  }
+
+  * {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+/* ─── Contribution Heatmap ────────────────────────────── */
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  transition: transform 0.15s ease;
+}
+
+.heatmap-cell:hover {
+  transform: scale(1.6);
+  z-index: 10;
+}
+
+.heatmap-cell[data-level="0"] {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.heatmap-cell[data-level="1"] {
+  background: rgba(99, 102, 241, 0.25);
+}
+
+.heatmap-cell[data-level="2"] {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+.heatmap-cell[data-level="3"] {
+  background: rgba(99, 102, 241, 0.65);
+}
+
+.heatmap-cell[data-level="4"] {
+  background: rgba(99, 102, 241, 0.9);
+}
+
+[data-theme="light"] .heatmap-cell[data-level="0"] {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="light"] .heatmap-cell[data-level="1"] {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+[data-theme="light"] .heatmap-cell[data-level="2"] {
+  background: rgba(99, 102, 241, 0.4);
+}
+
+[data-theme="light"] .heatmap-cell[data-level="3"] {
+  background: rgba(99, 102, 241, 0.6);
+}
+
+[data-theme="light"] .heatmap-cell[data-level="4"] {
+  background: rgba(99, 102, 241, 0.85);
+}

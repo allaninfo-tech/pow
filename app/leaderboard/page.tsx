@@ -7,7 +7,7 @@ import { useStore } from '@/lib/store';
 import LeagueBadge from '@/components/ui/LeagueBadge';
 import Avatar from '@/components/ui/Avatar';
 import { cn, formatNumber, formatRankChange, getRoleIcon, getRoleShort } from '@/lib/utils';
-import { Trophy, Users, TrendingUp, Star, Flame, ChevronUp, ChevronDown, Minus } from 'lucide-react';
+import { Trophy, Users, TrendingUp, Star, Flame, ChevronUp, ChevronDown, Minus, Search } from 'lucide-react';
 import { League, Role } from '@/lib/types';
 
 const leagues: (League | 'All')[] = ['All', 'Elite', 'Pro', 'Newbie'];
@@ -28,10 +28,12 @@ function RankChange({ change }: { change: number }) {
 
 export default function LeaderboardPage() {
     const { leaderboardTab, leaderboardLeague, leaderboardRole, setLeaderboardTab, setLeaderboardLeague, setLeaderboardRole, currentUser } = useStore();
+    const [search, setSearch] = useState('');
 
     const filteredGlobal = globalLeaderboard.filter(e => {
         if (leaderboardLeague !== 'All' && e.league !== leaderboardLeague) return false;
         if (leaderboardRole !== 'All' && e.role !== leaderboardRole) return false;
+        if (search && !e.displayName.toLowerCase().includes(search.toLowerCase()) && !e.username.toLowerCase().includes(search.toLowerCase())) return false;
         return true;
     });
 
@@ -89,6 +91,18 @@ export default function LeaderboardPage() {
                             </div>
                         </div>
                     </div>
+                </div>
+
+                {/* Search */}
+                <div className="relative max-w-sm">
+                    <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                    <input
+                        type="text"
+                        placeholder="Search engineers..."
+                        value={search}
+                        onChange={e => setSearch(e.target.value)}
+                        className="input-field pl-9"
+                    />
                 </div>
 
                 {/* Tabs */}

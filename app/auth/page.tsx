@@ -1,10 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Terminal, Github, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check } from 'lucide-react';
+import { Terminal, Github, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+    if (score <= 1) return { score: 1, label: 'Weak', color: 'bg-rose-500' };
+    if (score <= 2) return { score: 2, label: 'Fair', color: 'bg-amber-500' };
+    if (score <= 3) return { score: 3, label: 'Good', color: 'bg-cyan-400' };
+    return { score: 4, label: 'Strong', color: 'bg-emerald-400' };
+}
 
 const roles = [
     { icon: '🎨', name: 'Frontend Specialist', desc: 'React, Vue, UI systems' },
@@ -23,6 +36,8 @@ export default function AuthPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [password, setPassword] = useState('');
+    const strength = useMemo(() => getPasswordStrength(password), [password]);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -45,7 +60,7 @@ export default function AuthPage() {
     };
 
     return (
-        <div className="min-h-screen flex" style={{ background: '#060b14' }}>
+        <div className="min-h-screen flex bg-[var(--bg-primary)]">
             {/* Left panel */}
             <div className="hidden lg:flex flex-col justify-between w-[45%] p-12 relative overflow-hidden border-r border-white/[0.06]">
                 <div className="orb orb-indigo w-96 h-96 -top-20 -left-20" />
@@ -85,7 +100,8 @@ export default function AuthPage() {
             </div>
 
             {/* Right panel */}
-            <div className="flex-1 flex items-center justify-center p-6">
+            <div className="flex-1 flex items-center justify-center p-6 relative">
+                <div className="absolute inset-0 grid-bg opacity-10" />
                 <div className="w-full max-w-md">
                     {/* Logo mobile */}
                     <div className="lg:hidden flex items-center gap-3 mb-8">
@@ -125,7 +141,7 @@ export default function AuthPage() {
 
                             <div className="relative mb-6">
                                 <div className="divider" />
-                                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-0.5 bg-[#060b14] text-xs text-slate-500">
+                                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-0.5 bg-[var(--bg-primary)] text-xs text-slate-500">
                                     or email
                                 </span>
                             </div>
@@ -181,7 +197,7 @@ export default function AuthPage() {
 
                                     <div className="relative mb-6">
                                         <div className="divider" />
-                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-0.5 bg-[#060b14] text-xs text-slate-500">
+                                        <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-3 py-0.5 bg-[var(--bg-primary)] text-xs text-slate-500">
                                             or email
                                         </span>
                                     </div>
@@ -205,8 +221,38 @@ export default function AuthPage() {
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
                                             <div className="relative">
                                                 <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                <input type="password" placeholder="At least 8 characters" className="input-field pl-9" />
+                                                <input
+                                                    type="password"
+                                                    placeholder="At least 8 characters"
+                                                    className="input-field pl-9"
+                                                    value={password}
+                                                    onChange={e => setPassword(e.target.value)}
+                                                />
                                             </div>
+                                            {password.length > 0 && (
+                                                <div className="mt-2">
+                                                    <div className="flex gap-1 mb-1">
+                                                        {[1, 2, 3, 4].map(level => (
+                                                            <div key={level} className={cn(
+                                                                'h-1 flex-1 rounded-full transition-all',
+                                                                level <= strength.score ? strength.color : 'bg-white/[0.06]'
+                                                            )} />
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <ShieldCheck size={10} className={cn(
+                                                            strength.score <= 1 ? 'text-rose-400' :
+                                                                strength.score <= 2 ? 'text-amber-400' :
+                                                                    strength.score <= 3 ? 'text-cyan-400' : 'text-emerald-400'
+                                                        )} />
+                                                        <span className={cn('text-[10px] font-medium',
+                                                            strength.score <= 1 ? 'text-rose-400' :
+                                                                strength.score <= 2 ? 'text-amber-400' :
+                                                                    strength.score <= 3 ? 'text-cyan-400' : 'text-emerald-400'
+                                                        )}>{strength.label}</span>
+                                                    </div>
+                                                </div>
+                                            )}
                                         </div>
                                         <button type="submit" className="btn-primary w-full py-3 flex items-center justify-center gap-2">
                                             Continue <ArrowRight size={16} />

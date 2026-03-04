@@ -1,13 +1,14 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowRight, Zap, Trophy, Users, Star, Github, Shield, BarChart3, Code2, Terminal, Globe, GitBranch } from 'lucide-react';
+import { ArrowRight, Zap, Trophy, Users, Star, Github, Shield, BarChart3, Code2, Terminal, Globe, GitBranch, Menu, X, MessageSquare } from 'lucide-react';
 
 const stats = [
-  { label: 'Engineers', value: '12,400+', icon: Users, color: 'text-indigo-400' },
-  { label: 'Challenges Completed', value: '48,920', icon: Zap, color: 'text-cyan-400' },
-  { label: 'Active Squads', value: '2,180', icon: Shield, color: 'text-emerald-400' },
-  { label: 'Projects Validated', value: '91,340', icon: Code2, color: 'text-amber-400' },
+  { label: 'Engineers', value: 12400, suffix: '+', icon: Users, color: 'text-indigo-400' },
+  { label: 'Challenges Completed', value: 48920, suffix: '', icon: Zap, color: 'text-cyan-400' },
+  { label: 'Active Squads', value: 2180, suffix: '', icon: Shield, color: 'text-emerald-400' },
+  { label: 'Projects Validated', value: 91340, suffix: '', icon: Code2, color: 'text-amber-400' },
 ];
 
 const features = [
@@ -77,11 +78,63 @@ const topEngineers = [
   { initials: 'ZC', name: 'Zara Chen', role: 'Full Stack', score: 94.2, rank: 3, league: 'Elite' },
 ];
 
-export default function LandingPage() {
+const testimonials = [
+  { name: 'Alex Rivera', role: 'Frontend Specialist · Elite', quote: 'ProofStack completely replaced my portfolio. Recruiters contact me based on my verified score, not a resume.' },
+  { name: 'Priya Kaur', role: 'Full Stack Engineer · Pro', quote: 'The AI scoring pushed me to write production-grade code. My architecture skills improved 3x in two months.' },
+  { name: 'Marcus Okafor', role: 'DevOps Engineer · Elite', quote: 'Squad challenges taught me more about real team collaboration than any bootcamp ever could.' },
+];
+
+// Animated counter hook
+function useCounter(target: number, duration = 2000) {
+  const [count, setCount] = useState(0);
+  const ref = useRef<HTMLDivElement>(null);
+  const started = useRef(false);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !started.current) {
+          started.current = true;
+          const startTime = performance.now();
+          const step = (now: number) => {
+            const elapsed = now - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            setCount(Math.round(eased * target));
+            if (progress < 1) requestAnimationFrame(step);
+          };
+          requestAnimationFrame(step);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    if (ref.current) observer.observe(ref.current);
+    return () => observer.disconnect();
+  }, [target, duration]);
+
+  return { count, ref };
+}
+
+function AnimatedStat({ label, value, suffix, icon: Icon, color }: { label: string; value: number; suffix: string; icon: typeof Users; color: string }) {
+  const { count, ref } = useCounter(value);
   return (
-    <div className="min-h-screen" style={{ background: '#060b14' }}>
+    <div ref={ref} className="text-center">
+      <div className={`flex justify-center mb-2 ${color}`}>
+        <Icon size={22} />
+      </div>
+      <div className="text-3xl font-black text-white mb-1">{count.toLocaleString()}{suffix}</div>
+      <div className="text-sm text-slate-500">{label}</div>
+    </div>
+  );
+}
+
+export default function LandingPage() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  return (
+    <div className="min-h-screen bg-[var(--bg-primary)]">
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-white/[0.06] backdrop-blur-xl" style={{ background: 'rgba(6,11,20,0.85)' }}>
+      <nav className="sticky top-0 z-50 border-b topbar-container backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.5)]">
@@ -95,11 +148,31 @@ export default function LandingPage() {
             <a href="#roles" className="hover:text-slate-200 transition-colors">Roles</a>
             <a href="#leaderboard" className="hover:text-slate-200 transition-colors">Leaderboard</a>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="hidden md:flex items-center gap-3">
             <Link href="/auth" className="btn-ghost text-sm py-2 px-4">Sign In</Link>
             <Link href="/auth?tab=register" className="btn-primary text-sm py-2 px-4">Get Started</Link>
           </div>
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/[0.05] transition-all"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
+        {/* Mobile menu dropdown */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-white/[0.06] px-6 py-4 space-y-3 bg-[var(--bg-primary)]">
+            <a href="#features" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-slate-300 py-2">Features</a>
+            <a href="#how-it-works" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-slate-300 py-2">How It Works</a>
+            <a href="#roles" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-slate-300 py-2">Roles</a>
+            <a href="#leaderboard" onClick={() => setMobileMenuOpen(false)} className="block text-sm text-slate-300 py-2">Leaderboard</a>
+            <div className="flex gap-3 pt-2">
+              <Link href="/auth" className="btn-ghost text-sm py-2 px-4 flex-1 text-center">Sign In</Link>
+              <Link href="/auth?tab=register" className="btn-primary text-sm py-2 px-4 flex-1 text-center">Get Started</Link>
+            </div>
+          </div>
+        )}
       </nav>
 
       {/* Hero */}
@@ -147,17 +220,11 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats */}
-      <section className="border-y border-white/[0.05] py-12" style={{ background: 'rgba(255,255,255,0.01)' }}>
+      {/* Animated Stats */}
+      <section className="border-y border-white/[0.05] py-12 bg-white/[0.01]">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {stats.map(({ label, value, icon: Icon, color }) => (
-            <div key={label} className="text-center">
-              <div className={`flex justify-center mb-2 ${color}`}>
-                <Icon size={22} />
-              </div>
-              <div className="text-3xl font-black text-white mb-1">{value}</div>
-              <div className="text-sm text-slate-500">{label}</div>
-            </div>
+          {stats.map((stat) => (
+            <AnimatedStat key={stat.label} {...stat} />
           ))}
         </div>
       </section>
@@ -186,7 +253,7 @@ export default function LandingPage() {
       </section>
 
       {/* How it works */}
-      <section id="how-it-works" className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.01)' }}>
+      <section id="how-it-works" className="py-24 px-6 bg-white/[0.01]">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-black text-white mb-4">How ProofStack Works</h2>
@@ -212,8 +279,35 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Testimonials */}
+      <section className="py-24 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center mb-16">
+            <h2 className="text-4xl font-black text-white mb-4">What Engineers Say</h2>
+            <p className="text-slate-400">Real feedback from ProofStack competitors.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {testimonials.map(({ name, role, quote }) => (
+              <div key={name} className="glass-card p-6">
+                <MessageSquare size={20} className="text-indigo-400/50 mb-4" />
+                <p className="text-sm text-slate-300 leading-relaxed mb-4 italic">"{quote}"</p>
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center text-white text-xs font-bold">
+                    {name.split(' ').map(n => n[0]).join('')}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{name}</p>
+                    <p className="text-[10px] text-slate-500">{role}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Roles */}
-      <section id="roles" className="py-24 px-6">
+      <section id="roles" className="py-24 px-6 bg-white/[0.01]">
         <div className="max-w-4xl mx-auto text-center">
           <h2 className="text-4xl font-black text-white mb-4">Built for Every Engineering Discipline</h2>
           <p className="text-slate-400 mb-12">Challenges are tailored to your role. Rankings are role-specific.</p>
@@ -233,7 +327,7 @@ export default function LandingPage() {
       </section>
 
       {/* Live leaderboard preview */}
-      <section id="leaderboard" className="py-24 px-6" style={{ background: 'rgba(255,255,255,0.01)' }}>
+      <section id="leaderboard" className="py-24 px-6">
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-black text-white mb-4">Real-Time Global Leaderboard</h2>
           <p className="text-slate-400 mb-12">Rankings update after every validated submission.</p>
@@ -311,3 +405,4 @@ export default function LandingPage() {
     </div>
   );
 }
+
