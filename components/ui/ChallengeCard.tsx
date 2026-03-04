@@ -85,8 +85,11 @@ export default function ChallengeCard({ challenge, className }: ChallengeCardPro
                 </div>
 
                 {/* Hover action */}
-                <div className="flex items-center gap-1 mt-3 text-xs font-medium text-indigo-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    View Challenge <ArrowRight size={12} />
+                <div className={cn(
+                    "flex items-center gap-1 mt-3 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity",
+                    challenge.status === 'Completed' ? "text-emerald-400" : "text-indigo-400"
+                )}>
+                    {challenge.status === 'Completed' ? 'See Submissions' : 'View Challenge'} <ArrowRight size={12} />
                 </div>
             </div>
         </Link>

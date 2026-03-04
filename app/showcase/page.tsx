@@ -236,7 +236,7 @@ export default function ShowcasePage() {
 
     return (
         <AppShell>
-            <div className="max-w-6xl mx-auto space-y-6">
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Header */}
                 <div>
                     <h1 className="text-2xl font-bold text-white">Showcase</h1>
@@ -285,13 +285,13 @@ export default function ShowcasePage() {
                     <span><span className="text-slate-300 font-medium">{filtered.length}</span> projects found</span>
                 </div>
 
-                {/* Project Cards */}
-                <div className="space-y-6">
+                {/* Project Cards — 3 column grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                     {filtered.map(project => (
-                        <div key={project.id} className="glass-card overflow-hidden">
+                        <div key={project.id} className="glass-card overflow-hidden flex flex-col">
                             {/* Screenshot (blurred) + CTA overlay */}
                             <div className="relative group cursor-pointer" onClick={() => window.open(project.liveUrl, '_blank')}>
-                                <div className="w-full h-52 sm:h-64 overflow-hidden bg-navy-900">
+                                <div className="w-full h-40 overflow-hidden bg-navy-900">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                     <img
                                         src={project.screenshotUrl}
@@ -300,98 +300,95 @@ export default function ShowcasePage() {
                                     />
                                 </div>
                                 {/* Overlay */}
-                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/30 transition-all flex items-center justify-center">
-                                    <div className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-sm font-medium opacity-80 group-hover:opacity-100 transition-all group-hover:scale-105">
-                                        <Eye size={16} />
-                                        View Live Project
-                                        <ExternalLink size={14} />
+                                <div className="absolute inset-0 bg-black/40 group-hover:bg-black/25 transition-all flex items-center justify-center">
+                                    <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 text-white text-xs font-medium opacity-70 group-hover:opacity-100 transition-all group-hover:scale-105">
+                                        <Eye size={14} />
+                                        View Live
+                                        <ExternalLink size={12} />
                                     </div>
                                 </div>
                                 {/* Score badge */}
-                                <div className="absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10">
-                                    <Trophy size={12} className="text-amber-400" />
-                                    <span className={cn('text-sm font-mono font-bold', getScoreColor(project.totalScore))}>{project.totalScore}</span>
+                                <div className="absolute top-2 right-2 flex items-center gap-1 px-2 py-1 rounded-md bg-black/60 backdrop-blur-sm border border-white/10">
+                                    <Trophy size={10} className="text-amber-400" />
+                                    <span className={cn('text-xs font-mono font-bold', getScoreColor(project.totalScore))}>{project.totalScore}</span>
                                 </div>
                                 {/* Tier badge */}
-                                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-lg bg-black/60 backdrop-blur-sm border border-white/10 text-xs text-slate-300 font-medium">
-                                    Tier {project.tier}
+                                <div className="absolute top-2 left-2 px-2 py-0.5 rounded-md bg-black/60 backdrop-blur-sm border border-white/10 text-[10px] text-slate-300 font-medium">
+                                    T{project.tier}
                                 </div>
                             </div>
 
                             {/* Content */}
-                            <div className="p-5">
-                                {/* Title + meta */}
-                                <div className="flex items-start justify-between gap-4 mb-3">
-                                    <div>
-                                        <h3 className="text-base font-semibold text-white">{project.challengeTitle}</h3>
-                                        <p className="text-sm text-slate-400 mt-1 leading-relaxed">{project.description}</p>
-                                    </div>
-                                </div>
+                            <div className="p-4 flex flex-col flex-1">
+                                {/* Title */}
+                                <h3 className="text-sm font-semibold text-white mb-1 line-clamp-1">{project.challengeTitle}</h3>
+                                <p className="text-xs text-slate-400 leading-relaxed mb-3 line-clamp-2">{project.description}</p>
 
                                 {/* Author row */}
-                                <div className="flex items-center gap-3 mb-4 pb-4 border-b border-white/[0.06]">
-                                    <Avatar initials={project.avatar} size="sm" />
-                                    <div>
-                                        <p className="text-sm font-medium text-slate-200">{project.displayName}</p>
-                                        <p className="text-xs text-slate-500">{getRoleShort(project.role as any)} · {formatRelativeTime(project.submittedAt)}</p>
+                                <div className="flex items-center gap-2 mb-3 pb-3 border-b border-white/[0.06]">
+                                    <Avatar initials={project.avatar} size="xs" />
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs font-medium text-slate-200 truncate">{project.displayName}</p>
+                                        <p className="text-[10px] text-slate-500">{getRoleShort(project.role as any)}</p>
                                     </div>
-                                    <div className="ml-auto">
-                                        <LeagueBadge league={project.league} size="sm" />
-                                    </div>
+                                    <LeagueBadge league={project.league} size="sm" />
                                 </div>
 
                                 {/* Tech stack */}
-                                <div className="flex flex-wrap gap-1.5 mb-4">
-                                    {project.techStack.map(tech => (
-                                        <span key={tech} className="flex items-center gap-1 px-2 py-1 rounded-md bg-white/[0.04] border border-white/[0.06] text-xs text-slate-400">
-                                            <Code2 size={10} className="text-indigo-400" />
+                                <div className="flex flex-wrap gap-1 mb-3">
+                                    {project.techStack.slice(0, 3).map(tech => (
+                                        <span key={tech} className="px-1.5 py-0.5 rounded bg-white/[0.04] border border-white/[0.06] text-[10px] text-slate-400">
                                             {tech}
                                         </span>
                                     ))}
+                                    {project.techStack.length > 3 && (
+                                        <span className="px-1.5 py-0.5 rounded bg-white/[0.04] text-[10px] text-slate-500">+{project.techStack.length - 3}</span>
+                                    )}
                                 </div>
 
                                 {/* Actions row */}
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center gap-2 mt-auto pt-3 border-t border-white/[0.06]">
                                     {/* Upvote */}
                                     <button
                                         onClick={() => toggleUpvote(project.id)}
                                         className={cn(
-                                            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all border',
+                                            'flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium transition-all border',
                                             upvotes[project.id]
                                                 ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
-                                                : 'bg-white/[0.03] border-white/[0.06] text-slate-400 hover:border-indigo-500/20 hover:text-indigo-300'
+                                                : 'bg-white/[0.03] border-white/[0.06] text-slate-400 hover:text-indigo-300'
                                         )}
                                     >
-                                        <ThumbsUp size={14} className={upvotes[project.id] ? 'fill-current' : ''} />
+                                        <ThumbsUp size={11} className={upvotes[project.id] ? 'fill-current' : ''} />
                                         {upvoteCounts[project.id] || 0}
                                     </button>
 
                                     {/* Comments toggle */}
                                     <button
                                         onClick={() => toggleComments(project.id)}
-                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 bg-white/[0.03] border border-white/[0.06] hover:border-white/20 transition-all"
+                                        className="flex items-center gap-1 px-2 py-1 rounded-md text-xs text-slate-400 bg-white/[0.03] border border-white/[0.06] hover:border-white/20 transition-all"
                                     >
-                                        <MessageCircle size={14} />
+                                        <MessageCircle size={11} />
                                         {project.commentsCount}
-                                        {expandedComments[project.id] ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                                     </button>
 
-                                    <div className="ml-auto flex gap-2">
+                                    <div className="ml-auto flex gap-1">
                                         <a
                                             href={project.liveUrl}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 border border-indigo-500/15 hover:border-indigo-500/30 transition-all"
+                                            className="p-1.5 rounded-md text-indigo-400 hover:text-indigo-300 bg-indigo-500/5 border border-indigo-500/15 hover:border-indigo-500/30 transition-all"
+                                            title="Live"
                                         >
-                                            <ExternalLink size={12} /> Live
+                                            <ExternalLink size={12} />
                                         </a>
                                         <a
                                             href={`https://github.com/${project.githubRepo}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-slate-300 bg-white/[0.03] border border-white/[0.06] hover:border-white/20 transition-all"
+                                            className="p-1.5 rounded-md text-slate-400 hover:text-slate-300 bg-white/[0.03] border border-white/[0.06] hover:border-white/20 transition-all"
+                                            title="Source"
                                         >
-                                            <Github size={12} /> Source
+                                            <Github size={12} />
                                         </a>
                                     </div>
                                 </div>

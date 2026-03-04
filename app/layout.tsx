@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { ThemeProvider } from '@/lib/theme';
+import NavigationLoader from '@/components/layout/NavigationLoader';
 
 export const metadata: Metadata = {
   title: 'ProofStack — Global Engineering Competition Platform',
@@ -27,6 +28,7 @@ export default function RootLayout({
       </head>
       <body className="antialiased">
         <ThemeProvider>
+          <NavigationLoader />
           {children}
         </ThemeProvider>
       </body>

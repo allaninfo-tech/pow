@@ -28,6 +28,7 @@ export default function ChallengeDetailPage({ params }: { params: Promise<{ id: 
                             {challenge.mode === 'Both' ? 'Solo + Squad' : challenge.mode}
                         </span>
                         {challenge.status === 'Active' && <span className="badge bg-indigo-500/10 border-indigo-500/20 text-indigo-300"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />Live</span>}
+                        {challenge.status === 'Completed' && <span className="badge bg-emerald-500/10 border-emerald-500/20 text-emerald-300">Completed</span>}
                     </div>
                     <h1 className="text-2xl font-black text-white mb-2">{challenge.title}</h1>
                     <p className="text-slate-400">{challenge.shortDescription}</p>
@@ -141,13 +142,23 @@ export default function ChallengeDetailPage({ params }: { params: Promise<{ id: 
                     {/* Right sidebar */}
                     <div className="space-y-4">
                         {/* Submit CTA */}
-                        <div className="glass-card p-5 border-indigo-500/20 bg-indigo-500/[0.04]">
-                            <h3 className="text-sm font-semibold text-slate-300 mb-3">Ready to Submit?</h3>
-                            <p className="text-xs text-slate-500 mb-4">Deploy your solution and submit your GitHub repo + live URL for AI evaluation.</p>
-                            <Link href={`/submit/${challenge.id}`} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
-                                Submit Solution <ArrowRight size={16} />
-                            </Link>
-                        </div>
+                        {challenge.status === 'Completed' ? (
+                            <div className="glass-card p-5 border-emerald-500/20 bg-emerald-500/[0.04]">
+                                <h3 className="text-sm font-semibold text-slate-300 mb-3">Challenge Completed</h3>
+                                <p className="text-xs text-slate-500 mb-4">This challenge has ended. You can browse the verified submissions in the showcase.</p>
+                                <Link href={`/showcase?search=${encodeURIComponent(challenge.title)}`} className="btn-primary bg-emerald-500 hover:bg-emerald-600 shadow-[0_0_20px_rgba(16,185,129,0.2)] hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] border-emerald-400/50 w-full flex items-center justify-center gap-2 py-3 text-sm transition-all focus:ring-emerald-500/50">
+                                    See Submissions <ArrowRight size={16} />
+                                </Link>
+                            </div>
+                        ) : (
+                            <div className="glass-card p-5 border-indigo-500/20 bg-indigo-500/[0.04]">
+                                <h3 className="text-sm font-semibold text-slate-300 mb-3">Ready to Submit?</h3>
+                                <p className="text-xs text-slate-500 mb-4">Deploy your solution and submit your GitHub repo + live URL for AI evaluation.</p>
+                                <Link href={`/submit/${challenge.id}`} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
+                                    Submit Solution <ArrowRight size={16} />
+                                </Link>
+                            </div>
+                        )}
 
                         {/* Deadline */}
                         <div className="glass-card p-5">

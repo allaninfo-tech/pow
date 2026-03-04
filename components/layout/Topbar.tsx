@@ -73,11 +73,11 @@ export default function Topbar() {
 
             {/* Search */}
             <div className="relative hidden md:block">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
                 <input
                     type="text"
                     placeholder="Search challenges, users… (⌘K)"
-                    className="input-field pl-9 w-64 text-sm py-2"
+                    className="input-field pl-9 w-64 text-sm h-9"
                     readOnly
                 />
             </div>

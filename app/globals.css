@@ -1010,3 +1010,14 @@ pre {
 [data-theme="light"] .heatmap-cell[data-level="4"] {
   background: rgba(99, 102, 241, 0.85);
 }
+
+/* ─── Navigation Loader Shimmer ────────────────────────────── */
+@keyframes nav-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import AppShell from '@/components/layout/AppShell';
 import { mockChallenges } from '@/lib/mock/challenges';
 import { cn, isValidUrl, isValidGitHubRepo, getTierLabel } from '@/lib/utils';
-import { Globe, Github, Users, Check, ArrowRight, ArrowLeft, Loader2, Shield, Zap, AlertCircle, Plus, Trash2 } from 'lucide-react';
+import { Globe, Github, Users, Check, ArrowRight, ArrowLeft, Loader2, Shield, Zap, AlertCircle, Plus, Trash2, Upload, ImageIcon } from 'lucide-react';
 
 const steps = [
     { id: 1, label: 'Live URL', icon: Globe },
@@ -32,6 +32,7 @@ export default function SubmitPage({ params }: { params: Promise<{ id: string }>
     const [submitting, setSubmitting] = useState(false);
     const [submitted, setSubmitted] = useState(false);
     const [currentPipeline, setCurrentPipeline] = useState(-1);
+    const [screenshots, setScreenshots] = useState<string[]>([]);
 
     const liveUrlValid = isValidUrl(liveUrl);
     const reposValid = repos.every(r => r === '' || isValidGitHubRepo(r));
@@ -154,6 +155,41 @@ export default function SubmitPage({ params }: { params: Promise<{ id: string }>
                             </div>
                             <div className="p-3 rounded-xl bg-amber-500/[0.05] border border-amber-500/15">
                                 <p className="text-xs text-amber-300 flex items-start gap-2"><AlertCircle size={13} className="flex-shrink-0 mt-0.5" />Our validator will check HTTPS, response time, and basic availability. Ensure your server is running.</p>
+                            </div>
+
+                            {/* Screenshot Upload */}
+                            <div>
+                                <label className="block text-xs font-medium text-slate-400 mb-1.5">Project Screenshots</label>
+                                <p className="text-xs text-slate-500 mb-3">Upload screenshots of your project. These will appear blurred in the Showcase gallery to encourage visitors to view the live site.</p>
+                                <div
+                                    className="border-2 border-dashed border-white/[0.08] hover:border-indigo-500/30 rounded-xl p-6 text-center cursor-pointer transition-all group"
+                                    onClick={() => {
+                                        // Simulate file upload
+                                        const fakeNames = ['homepage.png', 'dashboard.png', 'feature-detail.png', 'mobile-view.png'];
+                                        if (screenshots.length < 4) {
+                                            setScreenshots(prev => [...prev, fakeNames[prev.length] || `screen-${prev.length + 1}.png`]);
+                                        }
+                                    }}
+                                >
+                                    <Upload size={24} className="mx-auto mb-2 text-slate-500 group-hover:text-indigo-400 transition-colors" />
+                                    <p className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors">Click to upload or drag & drop</p>
+                                    <p className="text-[10px] text-slate-600 mt-1">PNG, JPG up to 5MB · Max 4 screenshots</p>
+                                </div>
+                                {screenshots.length > 0 && (
+                                    <div className="mt-3 space-y-2">
+                                        {screenshots.map((name, i) => (
+                                            <div key={i} className="flex items-center justify-between p-2.5 rounded-lg bg-white/[0.02] border border-white/[0.06]">
+                                                <div className="flex items-center gap-2">
+                                                    <ImageIcon size={14} className="text-indigo-400" />
+                                                    <span className="text-xs text-slate-300">{name}</span>
+                                                </div>
+                                                <button onClick={(e) => { e.stopPropagation(); setScreenshots(prev => prev.filter((_, idx) => idx !== i)); }} className="p-1 rounded text-slate-600 hover:text-rose-400 hover:bg-rose-500/10 transition-all">
+                                                    <Trash2 size={12} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
