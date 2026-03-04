@@ -10,6 +10,23 @@ import { Users, Plus, Crown, Github, Link2, Search, Shield, UserPlus, Check, X, 
 const mySquad = mockSquads[0]; // Sigma Protocol
 const recruitingSquads = mockSquads.filter(s => s.isRecruiting);
 
+// Function to generate a deterministic abstract gradient based on a string (e.g. squad id)
+function getSquadGradient(seed: string) {
+    const gradients = [
+        'bg-gradient-to-br from-indigo-500 to-purple-600',
+        'bg-gradient-to-tr from-cyan-400 to-indigo-600',
+        'bg-gradient-to-bl from-rose-500 to-orange-400',
+        'bg-gradient-to-r from-emerald-400 to-cyan-400',
+        'bg-gradient-to-b from-amber-400 to-rose-500',
+        'bg-gradient-to-br from-fuchsia-600 to-pink-500',
+    ];
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+        hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return gradients[Math.abs(hash) % gradients.length];
+}
+
 export default function SquadPage() {
     const [tab, setTab] = useState<'my-squad' | 'find' | 'create'>('my-squad');
     const [inviteName, setInviteName] = useState('');
@@ -53,8 +70,11 @@ export default function SquadPage() {
                         {/* Squad header card */}
                         <div className="glass-card p-6">
                             <div className="flex flex-col sm:flex-row items-start gap-5">
-                                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 border border-indigo-500/20 flex items-center justify-center text-3xl flex-shrink-0">
-                                    {mySquad.avatarEmoji}
+                                <div className={cn(
+                                    "w-16 h-16 rounded-2xl flex items-center justify-center text-3xl flex-shrink-0 shadow-[0_0_20px_rgba(0,0,0,0.2)] border border-white/10",
+                                    getSquadGradient(mySquad.id)
+                                )}>
+                                    <span className="drop-shadow-md">{mySquad.avatarEmoji}</span>
                                 </div>
                                 <div className="flex-1">
                                     <div className="flex items-start justify-between gap-4">
@@ -111,7 +131,7 @@ export default function SquadPage() {
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2">
                                                 <p className="text-sm font-semibold text-slate-200">{member.displayName}</p>
-                                                {member.isLeader && <Crown size={14} className="text-amber-400" title="Squad Leader" />}
+                                                {member.isLeader && <Crown size={14} className="text-amber-400" />}
                                             </div>
                                             <p className="text-xs text-slate-500">@{member.username} · {getRoleIcon(member.role)} {getRoleShort(member.role)}</p>
                                         </div>
@@ -179,10 +199,13 @@ export default function SquadPage() {
                             <input type="text" placeholder="Search squads by name or tag..." className="input-field pl-9" />
                         </div>
                         {recruitingSquads.map(squad => (
-                            <div key={squad.id} className="glass-card p-5">
+                            <div key={squad.id} className="glass-card p-5 transition-all duration-300 hover:scale-[1.02] hover:-translate-y-1 hover:shadow-[0_10px_30px_-10px_rgba(108,99,255,0.3)]">
                                 <div className="flex items-start gap-4">
-                                    <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-2xl flex-shrink-0">
-                                        {squad.avatarEmoji}
+                                    <div className={cn(
+                                        "w-12 h-12 rounded-xl flex items-center justify-center text-2xl flex-shrink-0 shadow-lg border border-white/10",
+                                        getSquadGradient(squad.id)
+                                    )}>
+                                        <span className="drop-shadow-md">{squad.avatarEmoji}</span>
                                     </div>
                                     <div className="flex-1">
                                         <div className="flex items-start justify-between gap-4">

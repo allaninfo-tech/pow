@@ -17,11 +17,11 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
     const userSubmissions = username === 'dev.user' ? mockSubmissions : mockSubmissions.slice(0, 1);
 
     const radarData = [
-        { subject: 'Code Quality', value: Math.round(user.avgAIScore * 0.9 + Math.random() * 5) },
-        { subject: 'Architecture', value: Math.round(user.avgAIScore * 0.85 + Math.random() * 5) },
-        { subject: 'Performance', value: Math.round(user.avgAIScore * 0.95 + Math.random() * 5) },
-        { subject: 'Security', value: Math.round(user.avgAIScore * 0.88 + Math.random() * 5) },
-        { subject: 'Requirements', value: Math.round(user.avgAIScore * 0.92 + Math.random() * 5) },
+        { subject: 'Code Quality', value: Math.round(user.avgAIScore * 0.93) },
+        { subject: 'Architecture', value: Math.round(user.avgAIScore * 0.87) },
+        { subject: 'Performance', value: Math.round(user.avgAIScore * 0.97) },
+        { subject: 'Security', value: Math.round(user.avgAIScore * 0.90) },
+        { subject: 'Requirements', value: Math.round(user.avgAIScore * 0.95) },
     ];
 
     return (
@@ -101,7 +101,17 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                                 {Array.from({ length: 7 }, (_, day) => {
                                     const seed = (week * 7 + day + user.globalRank) % 17;
                                     const level = seed < 7 ? 0 : seed < 11 ? 1 : seed < 14 ? 2 : seed < 16 ? 3 : 4;
-                                    return <div key={day} className="heatmap-cell" data-level={level} title={`Week ${week + 1}, Day ${day + 1}`} />;
+                                    // Calculate staggered delay based on week and day
+                                    const delay = (week * 0.015) + (day * 0.005);
+                                    return (
+                                        <div
+                                            key={day}
+                                            className="heatmap-cell"
+                                            data-level={level}
+                                            title={`Week ${week + 1}, Day ${day + 1}`}
+                                            style={{ animationDelay: `${delay}s` }}
+                                        />
+                                    );
                                 })}
                             </div>
                         ))}
@@ -121,10 +131,29 @@ export default function ProfilePage({ params }: { params: Promise<{ username: st
                         </h2>
                         <ResponsiveContainer width="100%" height={200}>
                             <RadarChart data={radarData}>
-                                <PolarGrid stroke="rgba(255,255,255,0.06)" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                                <Radar dataKey="value" stroke="#6c63ff" fill="#6c63ff" fillOpacity={0.15} strokeWidth={2} />
-                                <Tooltip contentStyle={{ background: 'rgba(15,21,38,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }} />
+                                {/* Glowing gradient definition */}
+                                <defs>
+                                    <radialGradient id="radarGlow" cx="50%" cy="50%" r="50%">
+                                        <stop offset="0%" stopColor="#00d4ff" stopOpacity={0.4} />
+                                        <stop offset="100%" stopColor="#6c63ff" stopOpacity={0.1} />
+                                    </radialGradient>
+                                </defs>
+                                <PolarGrid stroke="rgba(255,255,255,0.08)" strokeDasharray="3 3" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: '#94a3b8', fontSize: 10, fontWeight: 500 }} />
+                                <Radar
+                                    name="Score"
+                                    dataKey="value"
+                                    stroke="#00d4ff"
+                                    strokeWidth={2}
+                                    fill="url(#radarGlow)"
+                                    className="drop-shadow-[0_0_10px_rgba(0,212,255,0.5)]"
+                                    animationDuration={1500}
+                                    animationEasing="ease-out"
+                                />
+                                <Tooltip
+                                    wrapperClassName="hud-tooltip"
+                                    cursor={false}
+                                />
                             </RadarChart>
                         </ResponsiveContainer>
                     </div>

@@ -128,7 +128,7 @@ export function formatRelativeTime(dateStr: string): string {
     const hours = Math.floor(diff / 3600000);
     const minutes = Math.floor(diff / 60000);
 
-    if (days > 30) return new Date(dateStr).toLocaleDateString();
+    if (days > 30) return formatDate(dateStr);
     if (days > 0) return `${days}d ago`;
     if (hours > 0) return `${hours}h ago`;
     if (minutes > 0) return `${minutes}m ago`;

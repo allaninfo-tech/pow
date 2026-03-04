@@ -23,6 +23,7 @@
   --animate-shimmer: shimmer 2s linear infinite;
   --animate-spin-slow: spin 3s linear infinite;
   --animate-scanline: scanline 8s linear infinite;
+  --animate-blink: blink 1s steps(2) infinite;
 
   @keyframes float {
 
@@ -87,6 +88,16 @@
 
     100% {
       transform: translateY(100vh);
+    }
+  }
+
+  @keyframes blink {
+    0% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
     }
   }
 }
@@ -657,17 +668,29 @@ pre {
   height: 100%;
   border-radius: 999px;
   background: linear-gradient(90deg, #6c63ff, #00d4ff);
-  transition: width 0.6s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
+  animation: progress-sweep 1s ease-out forwards;
+  transform-origin: left;
+}
+
+@keyframes progress-sweep {
+  from {
+    transform: scaleX(0);
+  }
+
+  to {
+    transform: scaleX(1);
+  }
 }
 
 .progress-fill::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-  animation: shimmer 2s linear infinite;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+  animation: shimmer 1.5s linear infinite;
 }
 
 /* Stat card */
@@ -1021,4 +1044,43 @@ pre {
   100% {
     background-position: -200% 0;
   }
+}
+
+/* ─── Custom Recharts Tooltip HUD ──────────────────────────── */
+.hud-tooltip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(167, 139, 250, 0.3) !important;
+  border-radius: 12px !important;
+  font-family: inherit;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15), inset 0 0 10px rgba(99, 102, 241, 0.05);
+  backdrop-filter: blur(10px);
+  padding: 12px 16px !important;
+}
+
+.hud-tooltip .recharts-tooltip-label {
+  color: #94a3b8 !important;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px !important;
+  font-weight: 600;
+}
+
+.hud-tooltip .recharts-tooltip-item {
+  color: #fff !important;
+  font-size: 1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hud-tooltip .recharts-tooltip-item::before {
+  content: '';
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #6c63ff;
+  box-shadow: 0 0 8px #6c63ff;
 }

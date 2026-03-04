@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Zap, Trophy, Users, Star, Github, Shield, BarChart3, Code2, Terminal, Globe, GitBranch, Menu, X, MessageSquare } from 'lucide-react';
 
@@ -128,6 +128,69 @@ function AnimatedStat({ label, value, suffix, icon: Icon, color }: { label: stri
   );
 }
 
+// Typewriter cycling text
+const typewriterPhrases = [
+  'Permanently Verified.',
+  'Weekly Challenges From Your Stack.',
+  'AI-Scored In Real Time.',
+  'Ranked Globally By Skill.',
+  'Backed By Real Commits.',
+];
+
+function TypewriterText({ phrases }: { phrases: string[] }) {
+  const [currentPhrase, setCurrentPhrase] = useState(0);
+  const [displayed, setDisplayed] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const typeSpeed = 35;
+  const deleteSpeed = 20;
+  const pauseAfterType = 1500;
+  const pauseAfterDelete = 300;
+
+  const tick = useCallback(() => {
+    const fullText = phrases[currentPhrase];
+
+    if (!isDeleting) {
+      // Typing
+      const next = fullText.slice(0, displayed.length + 1);
+      setDisplayed(next);
+      if (next === fullText) {
+        // Finished typing — pause then start deleting
+        timeoutRef.current = setTimeout(() => setIsDeleting(true), pauseAfterType);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, typeSpeed);
+    } else {
+      // Deleting
+      const next = fullText.slice(0, displayed.length - 1);
+      setDisplayed(next);
+      if (next === '') {
+        // Finished deleting — pause then move to next phrase
+        setIsDeleting(false);
+        setCurrentPhrase((prev) => (prev + 1) % phrases.length);
+        timeoutRef.current = setTimeout(tick, pauseAfterDelete);
+        return;
+      }
+      timeoutRef.current = setTimeout(tick, deleteSpeed);
+    }
+  }, [currentPhrase, displayed, isDeleting, phrases]);
+
+  useEffect(() => {
+    timeoutRef.current = setTimeout(tick, typeSpeed);
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    };
+  }, [tick]);
+
+  return (
+    <span className="text-gradient">
+      {displayed}
+      <span className="inline-block w-[3px] h-[0.85em] bg-indigo-400 ml-1 align-middle animate-blink" />
+    </span>
+  );
+}
+
 export default function LandingPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -195,7 +258,7 @@ export default function LandingPage() {
           <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight mb-6 leading-[1.05]">
             <span className="text-white">Your Skills,</span>
             <br />
-            <span className="text-gradient">Permanently Verified.</span>
+            <TypewriterText phrases={typewriterPhrases} />
           </h1>
 
           <p className="text-lg sm:text-xl text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">

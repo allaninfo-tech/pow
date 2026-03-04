@@ -62,6 +62,7 @@ export default function Topbar() {
             <button
                 onClick={toggleSidebar}
                 className="lg:hidden p-2 rounded-lg text-slate-500 hover:text-slate-300 hover:bg-white/[0.05] transition-all"
+                aria-label="Toggle sidebar"
             >
                 <Menu size={20} />
             </button>
@@ -96,6 +97,7 @@ export default function Topbar() {
                     'relative p-2 rounded-lg transition-all',
                     'text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]'
                 )}
+                aria-label="View notifications"
             >
                 <Bell size={18} />
                 {unreadNotifications > 0 && (
