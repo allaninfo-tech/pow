@@ -795,6 +795,7 @@ pre {
     linear-gradient(rgba(108, 99, 255, 0.04) 1px, transparent 1px),
     linear-gradient(90deg, rgba(108, 99, 255, 0.04) 1px, transparent 1px);
   background-size: 60px 60px;
+  pointer-events: none;
 }
 
 /* ─── Animated Gradient Orbs ─────────────────────────────────────── */

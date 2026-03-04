@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Terminal, Github, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import TypewriterTerminal from '@/components/ui/TypewriterTerminal';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
     let score = 0;
@@ -67,7 +68,10 @@ export default function AuthPage() {
                 <div className="orb orb-cyan w-64 h-64 bottom-20 right-0" />
                 <div className="absolute inset-0 grid-bg opacity-30" />
 
-                <div className="relative">
+                {/* Animated Background Code */}
+                <TypewriterTerminal className="z-0" />
+
+                <div className="relative z-10">
                     <Link href="/" className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center shadow-[0_0_20px_rgba(108,99,255,0.5)]">
                             <Terminal size={18} className="text-white" />
@@ -96,13 +100,13 @@ export default function AuthPage() {
                     </div>
                 </div>
 
-                <p className="relative text-xs text-slate-600">© 2026 ProofStack. All rights reserved.</p>
+                <p className="relative text-xs text-slate-600 mt-6 z-10">© 2026 ProofStack. All rights reserved.</p>
             </div>
 
             {/* Right panel */}
             <div className="flex-1 flex items-center justify-center p-6 relative">
                 <div className="absolute inset-0 grid-bg opacity-10" />
-                <div className="w-full max-w-md">
+                <div className="w-full max-w-md relative z-10">
                     {/* Logo mobile */}
                     <div className="lg:hidden flex items-center gap-3 mb-8">
                         <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-cyan-400 flex items-center justify-center">
@@ -116,6 +120,7 @@ export default function AuthPage() {
                         {(['login', 'register'] as const).map((t) => (
                             <button
                                 key={t}
+                                type="button"
                                 onClick={() => { setTab(t); setStep(1); }}
                                 className={cn(
                                     'flex-1 py-2 text-sm font-medium rounded-lg transition-all duration-200 capitalize',
@@ -134,7 +139,7 @@ export default function AuthPage() {
                             <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
                             <p className="text-sm text-slate-400 mb-8">Sign in to continue building your verified portfolio.</p>
 
-                            <button className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
+                            <button type="button" className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
                                 <Github size={18} />
                                 Continue with GitHub
                             </button>
@@ -150,18 +155,18 @@ export default function AuthPage() {
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                                     <div className="relative">
-                                        <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        <input type="email" placeholder="you@example.com" className="input-field pl-9" defaultValue="jordan.blake@example.com" />
+                                        <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                                        <input type="email" placeholder="you@example.com" className="input-field pl-10" defaultValue="" />
                                     </div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
                                     <div className="relative">
-                                        <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                        <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                                         <input
                                             type={showPassword ? 'text' : 'password'}
-                                            placeholder="••••••••"
-                                            className="input-field pl-9 pr-10"
+                                            placeholder=""
+                                            className="input-field pl-10 pr-10"
                                             defaultValue="password"
                                         />
                                         <button
@@ -190,7 +195,7 @@ export default function AuthPage() {
                                     <h1 className="text-2xl font-bold text-white mb-1">Create your account</h1>
                                     <p className="text-sm text-slate-400 mb-8">Join the global engineering competition platform.</p>
 
-                                    <button className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
+                                    <button type="button" className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
                                         <Github size={18} />
                                         Register with GitHub
                                     </button>
@@ -206,25 +211,25 @@ export default function AuthPage() {
                                         <div>
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Full Name</label>
                                             <div className="relative">
-                                                <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                <input type="text" placeholder="Your Name" className="input-field pl-9" />
+                                                <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <input type="text" placeholder="Your Name" className="input-field pl-10" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                                             <div className="relative">
-                                                <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                <input type="email" placeholder="you@example.com" className="input-field pl-9" />
+                                                <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <input type="email" placeholder="you@example.com" className="input-field pl-10" />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
                                             <div className="relative">
-                                                <Lock size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                                                <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
                                                 <input
                                                     type="password"
                                                     placeholder="At least 8 characters"
-                                                    className="input-field pl-9"
+                                                    className="input-field pl-10"
                                                     value={password}
                                                     onChange={e => setPassword(e.target.value)}
                                                 />
@@ -267,6 +272,7 @@ export default function AuthPage() {
                                         {roles.map(({ icon, name, desc }) => (
                                             <button
                                                 key={name}
+                                                type="button"
                                                 onClick={() => setSelectedRole(name)}
                                                 className={cn(
                                                     'w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all',
