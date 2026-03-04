@@ -1,0 +1,212 @@
+'use client';
+
+import { use } from 'react';
+import { notFound } from 'next/navigation';
+import AppShell from '@/components/layout/AppShell';
+import { mockChallenges } from '@/lib/mock/challenges';
+import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon, formatNumber, getScoreColor } from '@/lib/utils';
+import { Zap, Users, Clock, CheckCircle2, AlertCircle, ArrowRight, Code2, Shield, Gauge, ExternalLink, BookOpen } from 'lucide-react';
+import Link from 'next/link';
+
+export default function ChallengeDetailPage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = use(params);
+    const challenge = mockChallenges.find(c => c.id === id);
+    if (!challenge) notFound();
+
+    const urgency = new Date(challenge.deadline).getTime() - Date.now() < 86400000 * 2;
+
+    return (
+        <AppShell>
+            <div className="max-w-5xl mx-auto space-y-6">
+                {/* Header */}
+                <div className="glass-card p-6">
+                    <div className="flex flex-wrap items-start gap-3 mb-4">
+                        <span className={cn('badge', getTierColor(challenge.tier))}>
+                            Tier {challenge.tier} · {getTierLabel(challenge.tier)}
+                        </span>
+                        <span className={cn('badge border', challenge.mode === 'Squad' ? 'bg-purple-500/10 border-purple-500/20 text-purple-300' : challenge.mode === 'Solo' ? 'bg-cyan-500/10 border-cyan-500/20 text-cyan-300' : 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300')}>
+                            {challenge.mode === 'Both' ? 'Solo + Squad' : challenge.mode}
+                        </span>
+                        {challenge.status === 'Active' && <span className="badge bg-indigo-500/10 border-indigo-500/20 text-indigo-300"><span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />Live</span>}
+                    </div>
+                    <h1 className="text-2xl font-black text-white mb-2">{challenge.title}</h1>
+                    <p className="text-slate-400">{challenge.shortDescription}</p>
+
+                    {/* Stats row */}
+                    <div className="flex flex-wrap items-center gap-6 mt-5 pt-5 border-t border-white/[0.06]">
+                        <div className="flex items-center gap-2 text-sm">
+                            <Clock size={16} className={urgency ? 'text-rose-400' : 'text-slate-400'} />
+                            <span className={urgency ? 'text-rose-400 font-semibold' : 'text-slate-400'}>
+                                {formatTimeUntil(challenge.deadline)} remaining
+                            </span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Users size={16} />
+                            {challenge.participantsCount} participants
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-slate-400">
+                            <Code2 size={16} />
+                            {challenge.submissionsCount} submissions
+                        </div>
+                        <div className="flex flex-wrap gap-1.5 ml-auto">
+                            {challenge.requiredRoles.map(r => (
+                                <span key={r} className="chip text-xs">{getRoleIcon(r)} {r}</span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Main content */}
+                    <div className="lg:col-span-2 space-y-5">
+                        {/* Client Scenario */}
+                        <div className="glass-card p-6">
+                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <BookOpen size={16} className="text-indigo-400" /> Client Scenario
+                            </h2>
+                            <div className="p-4 rounded-xl bg-indigo-500/[0.05] border border-indigo-500/15">
+                                <p className="text-sm text-slate-300 leading-relaxed">{challenge.clientScenario}</p>
+                            </div>
+                        </div>
+
+                        {/* Functional Requirements */}
+                        <div className="glass-card p-6">
+                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <CheckCircle2 size={16} className="text-emerald-400" /> Functional Requirements
+                            </h2>
+                            <ul className="space-y-2.5">
+                                {challenge.functionalRequirements.map((req, i) => (
+                                    <li key={i} className="flex items-start gap-3">
+                                        <span className="w-5 h-5 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center flex-shrink-0 mt-0.5">
+                                            <span className="text-[10px] font-bold text-emerald-400">{i + 1}</span>
+                                        </span>
+                                        <p className="text-sm text-slate-300">{req}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+
+                        {/* Technical Constraints */}
+                        <div className="glass-card p-6">
+                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <AlertCircle size={16} className="text-amber-400" /> Technical Constraints
+                            </h2>
+                            <ul className="space-y-2.5">
+                                {challenge.technicalConstraints.map((c, i) => (
+                                    <li key={i} className="flex items-start gap-3">
+                                        <AlertCircle size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                                        <p className="text-sm text-slate-300">{c}</p>
+                                    </li>
+                                ))}
+                            </ul>
+                            {challenge.performanceConstraints.length > 0 && (
+                                <div className="mt-5 pt-5 border-t border-white/[0.06]">
+                                    <h3 className="text-xs font-semibold text-slate-400 uppercase mb-3 flex items-center gap-2">
+                                        <Gauge size={14} className="text-cyan-400" /> Performance Constraints
+                                    </h3>
+                                    <ul className="space-y-2">
+                                        {challenge.performanceConstraints.map((c, i) => (
+                                            <li key={i} className="flex items-center gap-3 text-sm text-slate-300">
+                                                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+                                                {c}
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Evaluation Criteria */}
+                        <div className="glass-card p-6">
+                            <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wider mb-4 flex items-center gap-2">
+                                <Shield size={16} className="text-violet-400" /> Evaluation Criteria
+                            </h2>
+                            <div className="space-y-4">
+                                {challenge.evaluationCriteria.map((crit) => (
+                                    <div key={crit.name}>
+                                        <div className="flex items-center justify-between mb-1.5">
+                                            <span className="text-sm font-medium text-slate-300">{crit.name}</span>
+                                            <span className="text-xs font-mono font-bold text-indigo-400">{crit.weight}%</span>
+                                        </div>
+                                        <div className="progress-bar mb-1.5">
+                                            <div className="progress-fill" style={{ width: `${crit.weight}%` }} />
+                                        </div>
+                                        <p className="text-xs text-slate-500">{crit.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right sidebar */}
+                    <div className="space-y-4">
+                        {/* Submit CTA */}
+                        <div className="glass-card p-5 border-indigo-500/20 bg-indigo-500/[0.04]">
+                            <h3 className="text-sm font-semibold text-slate-300 mb-3">Ready to Submit?</h3>
+                            <p className="text-xs text-slate-500 mb-4">Deploy your solution and submit your GitHub repo + live URL for AI evaluation.</p>
+                            <Link href={`/submit/${challenge.id}`} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
+                                Submit Solution <ArrowRight size={16} />
+                            </Link>
+                        </div>
+
+                        {/* Deadline */}
+                        <div className="glass-card p-5">
+                            <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                <Clock size={16} className="text-rose-400" /> Deadline
+                            </h3>
+                            <p className={cn('text-2xl font-black font-mono', urgency ? 'text-rose-400' : 'text-white')}>
+                                {formatTimeUntil(challenge.deadline)}
+                            </p>
+                            <p className="text-xs text-slate-500 mt-1">{new Date(challenge.deadline).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
+                        </div>
+
+                        {/* Allowed Stack */}
+                        <div className="glass-card p-5">
+                            <h3 className="text-sm font-semibold text-slate-300 mb-3 flex items-center gap-2">
+                                <Code2 size={16} className="text-emerald-400" /> Allowed Stack
+                            </h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {challenge.allowedStack.map(tech => (
+                                    <span key={tech} className="chip text-xs font-mono">{tech}</span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Tags */}
+                        <div className="glass-card p-5">
+                            <h3 className="text-sm font-semibold text-slate-300 mb-3">Tags</h3>
+                            <div className="flex flex-wrap gap-1.5">
+                                {challenge.tags.map(tag => (
+                                    <span key={tag} className="badge badge-pro">{tag}</span>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Community */}
+                        <div className="glass-card p-5">
+                            <h3 className="text-sm font-semibold text-slate-300 mb-3">Community</h3>
+                            <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Participants</span>
+                                    <span className="text-white font-semibold">{challenge.participantsCount}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Submissions</span>
+                                    <span className="text-white font-semibold">{challenge.submissionsCount}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                    <span className="text-slate-400">Avg submissions</span>
+                                    <span className="text-emerald-400 font-semibold">
+                                        {challenge.submissionsCount > 0
+                                            ? Math.round((challenge.submissionsCount / challenge.participantsCount) * 100) + '%'
+                                            : '—'}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </AppShell>
+    );
+}
