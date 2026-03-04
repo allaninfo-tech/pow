@@ -246,6 +246,100 @@
   background: rgba(108, 99, 255, 0.25);
 }
 
+/* ─── Light Mode: Text Color Overrides ──────────────────────────── */
+/* Headings & primary text (text-white, text-slate-200) */
+[data-theme="light"] .text-white,
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3 {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] .text-slate-200 {
+  color: #1e293b !important;
+}
+
+[data-theme="light"] .text-slate-300 {
+  color: #334155 !important;
+}
+
+/* Body text */
+[data-theme="light"] .text-slate-400 {
+  color: #475569 !important;
+}
+
+[data-theme="light"] .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* Muted / captions */
+[data-theme="light"] .text-slate-600 {
+  color: #94a3b8 !important;
+}
+
+/* ─── Light Mode: Border & Background Overrides ─────────────────── */
+/* Invisible white-alpha borders → black-alpha borders */
+[data-theme="light"] [class*="border-white\\/"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Invisible white-alpha backgrounds → black-alpha backgrounds */
+[data-theme="light"] [class*="bg-white\\/"] {
+  background-color: rgba(0, 0, 0, 0.02) !important;
+}
+
+/* Card-like items with white-alpha that need visible hover */
+[data-theme="light"] [class*="hover\\:bg-indigo-500\\/"] {
+  /* keep existing behavior */
+}
+
+/* Data table styles */
+[data-theme="light"] .data-table th {
+  background: rgba(0, 0, 0, 0.03) !important;
+  color: #475569 !important;
+  border-color: rgba(0, 0, 0, 0.06) !important;
+}
+
+[data-theme="light"] .data-table td {
+  border-color: rgba(0, 0, 0, 0.05) !important;
+}
+
+[data-theme="light"] .data-table tr:hover td {
+  background: rgba(108, 99, 255, 0.04) !important;
+}
+
+/* Badge overrides */
+[data-theme="light"] .badge {
+  border-color: rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Orbs — subtle in light mode */
+[data-theme="light"] .orb {
+  opacity: 0.08 !important;
+}
+
+/* Grid background pattern */
+[data-theme="light"] .grid-bg {
+  opacity: 0.15 !important;
+}
+
+/* Select/option elements */
+[data-theme="light"] select option {
+  background: white;
+  color: #0f172a;
+}
+
+/* Progress fill keeps gradient */
+[data-theme="light"] .progress-fill {
+  opacity: 0.85;
+}
+
+/* Fix hardcoded #060b14 backgrounds on landing/auth */
+[data-theme="light"] [style*="background: #060b14"],
+[data-theme="light"] [style*="background:#060b14"] {
+  background: var(--bg-primary) !important;
+}
+
 /* Sidebar container */
 .sidebar-container {
   background: linear-gradient(180deg, #0a0e1a 0%, #060b14 100%);

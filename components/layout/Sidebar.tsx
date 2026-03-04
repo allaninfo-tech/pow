@@ -20,11 +20,13 @@ import {
     Terminal,
     Moon,
     Sun,
+    GalleryVerticalEnd,
 } from 'lucide-react';
 
 const navItems = [
     { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/challenges', label: 'Challenges', icon: Zap },
+    { href: '/showcase', label: 'Showcase', icon: GalleryVerticalEnd },
     { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
     { href: '/squad', label: 'My Squad', icon: Users },
     { href: '/profile/dev.user', label: 'Profile', icon: User },
