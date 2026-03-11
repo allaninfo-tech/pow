@@ -82,27 +82,29 @@ export default async function SquadPage() {
         .order('global_rank', { ascending: true })
         .limit(20);
 
-    const formattedRecruiting = [];
-    if (recruitingSquads) {
-        for (const s of recruitingSquads) {
-            // Count members for recruiting list
-            const { count } = await supabase
-                .from('squad_members')
-                .select('*', { count: 'exact', head: true })
-                .eq('squad_id', s.id);
-
-            formattedRecruiting.push({
-                id: s.id,
-                name: s.name,
-                description: s.description,
-                avatarEmoji: s.avatar_emoji,
-                globalRank: s.global_rank,
-                isRecruiting: s.is_recruiting,
-                tags: s.tags || [],
-                members: new Array(count || 0).fill({}) // we only need length for UI
-            });
-        }
+    // Fetch recruiting squad member counts all at once (avoids N+1)
+    const recruitingIds = (recruitingSquads || []).map(s => s.id);
+    const recruitingCountMap: Record<string, number> = {};
+    if (recruitingIds.length > 0) {
+        const { data: recruitingMemberCounts } = await supabase
+            .from('squad_members')
+            .select('squad_id')
+            .in('squad_id', recruitingIds);
+        (recruitingMemberCounts || []).forEach(m => {
+            recruitingCountMap[m.squad_id] = (recruitingCountMap[m.squad_id] || 0) + 1;
+        });
     }
+
+    const formattedRecruiting = (recruitingSquads || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        description: s.description,
+        avatarEmoji: s.avatar_emoji,
+        globalRank: s.global_rank,
+        isRecruiting: s.is_recruiting,
+        tags: s.tags || [],
+        members: new Array(recruitingCountMap[s.id] || 0).fill({})
+    }));
 
     return (
         <SquadClient

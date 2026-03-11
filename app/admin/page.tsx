@@ -42,5 +42,26 @@ export default async function AdminPage() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    return <AdminClient initialChallenges={challenges || []} />;
+    // 4. Fetch platform statistics
+    const { count: totalUsers } = await supabase.from('users').select('*', { count: 'exact', head: true });
+    const { count: totalSubmissions } = await supabase.from('submissions').select('*', { count: 'exact', head: true });
+    const { count: activeChallenges } = await supabase.from('challenges').select('*', { count: 'exact', head: true }).eq('status', 'Active');
+
+    const stats = {
+        totalUsers: totalUsers || 0,
+        totalSubmissions: totalSubmissions || 0,
+        activeChallenges: activeChallenges || 0
+    };
+
+    // 5. Fetch all users for user management
+    const { data: users } = await supabase
+        .from('users')
+        .select('id, display_name, email, league, global_rank, joined_at, is_admin')
+        .order('joined_at', { ascending: false });
+
+    return <AdminClient 
+        initialChallenges={challenges || []} 
+        stats={stats}
+        users={users || []} 
+    />;
 }

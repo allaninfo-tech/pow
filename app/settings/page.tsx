@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
-import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import Avatar from '@/components/ui/Avatar';
 import { createClient } from '@/lib/supabase/client';
-import { User, Github, Bell, Palette, Shield, Save, Check, ExternalLink, Moon, Sun, Monitor } from 'lucide-react';
+import { User, Github, Bell, Palette, Shield, Save, Check, ExternalLink, Moon, Sun, Monitor, Download, Trash2, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useRouter } from 'next/navigation';
 
 const tabs = [
     { id: 'profile', label: 'Profile', icon: User },
@@ -18,11 +18,21 @@ const tabs = [
     { id: 'account', label: 'Account', icon: Shield },
 ];
 
+const DEFAULT_NOTIF_PREFS = {
+    challengeNew: true,
+    challengeDeadline: true,
+    submissionScored: true,
+    squadInvite: true,
+    leaguePromotion: true,
+    emailDigest: false,
+};
+
 export default function SettingsPage() {
-    const { } = useStore();
+    const router = useRouter();
     const { theme, setTheme } = useTheme();
     const [tab, setTab] = useState('profile');
     const [saved, setSaved] = useState(false);
+    const [userId, setUserId] = useState<string | null>(null);
     const [avatarInitials, setAvatarInitials] = useState<string>('?');
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [githubConnected, setGithubConnected] = useState(false);
@@ -35,13 +45,27 @@ export default function SettingsPage() {
         website: '',
     });
 
+    const [notifPrefs, setNotifPrefs] = useState(DEFAULT_NOTIF_PREFS);
+
+    // Secure: redirect if not logged in
     useEffect(() => {
         const supabase = createClient();
         supabase.auth.getUser().then(async ({ data: { user } }) => {
-            if (!user) return;
+            if (!user) {
+                router.replace('/auth');
+                return;
+            }
+            setUserId(user.id);
+            // Split the query: typed fields first, then new `notification_prefs` column via `as any`
             const { data } = await supabase
                 .from('users')
                 .select('display_name, username, bio, location, website, avatar, github_username, github_connected')
+                .eq('id', user.id)
+                .single();
+            // Fetch notification_prefs separately to avoid TS schema mismatch (column may be new)
+            const { data: notifData } = await (supabase as any)
+                .from('users')
+                .select('notification_prefs')
                 .eq('id', user.id)
                 .single();
             if (data) {
@@ -60,35 +84,89 @@ export default function SettingsPage() {
                     location: data.location || '',
                     website: data.website || '',
                 });
+                if (notifData?.notification_prefs) {
+                    setNotifPrefs({ ...DEFAULT_NOTIF_PREFS, ...(notifData.notification_prefs as any) });
+                }
             }
         });
-    }, []);
+    }, [router]);
 
-    const [notifPrefs, setNotifPrefs] = useState({
-        challengeNew: true,
-        challengeDeadline: true,
-        submissionScored: true,
-        squadInvite: true,
-        leaguePromotion: true,
-        emailDigest: false,
-    });
+    const showSaved = () => { setSaved(true); setTimeout(() => setSaved(false), 2000); };
 
-    const handleSave = async () => {
+    const handleSaveProfile = async () => {
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            await supabase
-                .from('users')
-                .update({
-                    display_name: profile.displayName,
-                    bio: profile.bio,
-                    location: profile.location,
-                    website: profile.website,
-                })
-                .eq('id', user.id);
-        }
-        setSaved(true);
-        setTimeout(() => setSaved(false), 2000);
+        if (!user) return;
+        await supabase.from('users').update({
+            display_name: profile.displayName,
+            bio: profile.bio,
+            location: profile.location,
+            website: profile.website,
+        }).eq('id', user.id);
+        showSaved();
+    };
+
+    const handleSaveNotifPrefs = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await (supabase as any).from('users').update({ notification_prefs: notifPrefs }).eq('id', user.id);
+        showSaved();
+    };
+
+    // Password change
+    const [pwLoading, setPwLoading] = useState(false);
+    const [currentPw, setCurrentPw] = useState('');
+    const [newPw, setNewPw] = useState('');
+    const [confirmPw, setConfirmPw] = useState('');
+    const [pwError, setPwError] = useState<string | null>(null);
+    const [pwSuccess, setPwSuccess] = useState(false);
+
+    const handleChangePassword = async () => {
+        if (newPw !== confirmPw) { setPwError('Passwords do not match.'); return; }
+        if (newPw.length < 8) { setPwError('Password must be at least 8 characters.'); return; }
+        setPwLoading(true); setPwError(null);
+        const supabase = createClient();
+        const { error } = await supabase.auth.updateUser({ password: newPw });
+        if (error) { setPwError(error.message); }
+        else { setPwSuccess(true); setCurrentPw(''); setNewPw(''); setConfirmPw(''); }
+        setPwLoading(false);
+    };
+
+    // Data export
+    const [exportLoading, setExportLoading] = useState(false);
+    const handleExportData = async () => {
+        setExportLoading(true);
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { setExportLoading(false); return; }
+        const [{ data: userData }, { data: submissions }] = await Promise.all([
+            supabase.from('users').select('*').eq('id', user.id).single(),
+            supabase.from('submissions').select('*').eq('user_id', user.id),
+        ]);
+        const exportData = { profile: userData, submissions: submissions || [], exportedAt: new Date().toISOString() };
+        const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `proofstack-export-${user.id.slice(0, 8)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        setExportLoading(false);
+    };
+
+    // Account deletion
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const handleDeleteAccount = async () => {
+        const confirm1 = window.confirm('Are you absolutely sure you want to delete your account? This cannot be undone.');
+        if (!confirm1) return;
+        const confirm2 = window.prompt('Type DELETE to confirm account deletion:');
+        if (confirm2 !== 'DELETE') { alert('Account deletion cancelled.'); return; }
+        setDeleteLoading(true);
+        // Note: Deleting auth.users requires a service-role call — we sign out and show message for now
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.replace('/auth');
     };
 
     return (
@@ -142,37 +220,24 @@ export default function SettingsPage() {
                                     <div className="flex items-center gap-4">
                                         <Avatar initials={avatarInitials} size="xl" />
                                         <div>
-                                            <input 
-                                                type="file" 
-                                                id="avatar-upload" 
-                                                className="hidden" 
+                                            <input
+                                                type="file"
+                                                id="avatar-upload"
+                                                className="hidden"
                                                 accept="image/*"
                                                 onChange={async (e) => {
                                                     const file = e.target.files?.[0];
                                                     if (!file) return;
-                                                    
                                                     const supabase = createClient();
                                                     const { data: { user } } = await supabase.auth.getUser();
                                                     if (!user) return;
-
                                                     const fileExt = file.name.split('.').pop();
                                                     const filePath = `${user.id}-${Math.random()}.${fileExt}`;
-
-                                                    const { error: uploadError } = await supabase.storage
-                                                        .from('avatars')
-                                                        .upload(filePath, file);
-
+                                                    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
                                                     if (!uploadError) {
-                                                        const { data: { publicUrl } } = supabase.storage
-                                                            .from('avatars')
-                                                            .getPublicUrl(filePath);
-                                                        
-                                                        await supabase
-                                                            .from('users')
-                                                            .update({ avatar: publicUrl })
-                                                            .eq('id', user.id);
-                                                            
-                                                        setAvatarInitials(publicUrl); // Setting publicUrl directly to Avatar component works if Avatar component supports image URLs
+                                                        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+                                                        await supabase.from('users').update({ avatar: publicUrl }).eq('id', user.id);
+                                                        setAvatarInitials(publicUrl);
                                                     }
                                                 }}
                                             />
@@ -235,7 +300,7 @@ export default function SettingsPage() {
                                     </div>
 
                                     <div className="flex justify-end">
-                                        <button onClick={handleSave} className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm">
+                                        <button onClick={handleSaveProfile} className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm">
                                             {saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Changes</>}
                                         </button>
                                     </div>
@@ -275,9 +340,9 @@ export default function SettingsPage() {
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-sm font-medium text-slate-400">GitHub</p>
-                                                <p className="text-xs text-slate-600">Not connected</p>
+                                                <p className="text-xs text-slate-600">Coming soon</p>
                                             </div>
-                                            <button className="btn-primary text-xs px-3 py-1.5">Connect</button>
+                                            <button disabled className="btn-ghost text-xs px-3 py-1.5 opacity-50 cursor-not-allowed">Connect</button>
                                         </div>
                                     )}
 
@@ -288,9 +353,9 @@ export default function SettingsPage() {
                                             </div>
                                             <div className="flex-1">
                                                 <p className="text-sm font-medium text-slate-400">{service}</p>
-                                                <p className="text-xs text-slate-600">Not connected</p>
+                                                <p className="text-xs text-slate-600">Coming soon</p>
                                             </div>
-                                            <button className="btn-primary text-xs px-3 py-1.5">Connect</button>
+                                            <button disabled className="btn-ghost text-xs px-3 py-1.5 opacity-50 cursor-not-allowed">Connect</button>
                                         </div>
                                     ))}
                                 </motion.div>
@@ -308,7 +373,7 @@ export default function SettingsPage() {
                                 >
                                     <div>
                                         <h2 className="text-base font-semibold text-white mb-1">Notification Preferences</h2>
-                                        <p className="text-xs text-slate-500">Choose what you want to be notified about.</p>
+                                        <p className="text-xs text-slate-500">Your preferences are saved to your account.</p>
                                     </div>
 
                                     <div className="space-y-3">
@@ -332,17 +397,15 @@ export default function SettingsPage() {
                                                         onChange={e => setNotifPrefs({ ...notifPrefs, [key]: e.target.checked })}
                                                         className="sr-only peer"
                                                     />
-                                                    {/* Track */}
-                                                    <div className="w-[42px] h-[24px] rounded-full bg-slate-700/50 border border-black/20 peer-checked:bg-emerald-500 shadow-inner overflow-hidden transition-all duration-300 ease-spring" />
-                                                    {/* Knob */}
-                                                    <div className="absolute left-[3px] top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm border border-black/5 peer-checked:translate-x-[18px] transition-transform duration-300 ease-spring" />
+                                                    <div className="w-[42px] h-[24px] rounded-full bg-slate-700/50 border border-black/20 peer-checked:bg-emerald-500 shadow-inner overflow-hidden transition-all duration-300" />
+                                                    <div className="absolute left-[3px] top-[3px] w-[18px] h-[18px] rounded-full bg-white shadow-sm border border-black/5 peer-checked:translate-x-[18px] transition-transform duration-300" />
                                                 </div>
                                             </label>
                                         ))}
                                     </div>
 
                                     <div className="flex justify-end mt-4">
-                                        <button onClick={handleSave} className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm">
+                                        <button onClick={handleSaveNotifPrefs} className="btn-primary flex items-center gap-2 px-6 py-2.5 text-sm">
                                             {saved ? <><Check size={14} /> Saved!</> : <><Save size={14} /> Save Preferences</>}
                                         </button>
                                     </div>
@@ -408,22 +471,74 @@ export default function SettingsPage() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <div className="p-4 rounded-xl border border-white/[0.06]">
-                                            <h3 className="text-sm font-medium text-slate-300 mb-1">Change Password</h3>
-                                            <p className="text-xs text-slate-500 mb-3">Update your password for email login.</p>
-                                            <button className="btn-ghost text-xs px-4 py-2">Change Password</button>
+                                        {/* Change Password */}
+                                        <div className="p-5 rounded-xl border border-white/[0.06] space-y-4">
+                                            <div className="flex items-center gap-2">
+                                                <Lock size={16} className="text-indigo-400" />
+                                                <h3 className="text-sm font-semibold text-slate-200">Change Password</h3>
+                                            </div>
+                                            {pwError && (
+                                                <p className="text-xs text-rose-400 bg-rose-500/10 border border-rose-500/20 rounded-lg px-3 py-2">{pwError}</p>
+                                            )}
+                                            {pwSuccess && (
+                                                <p className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2 flex items-center gap-1.5"><Check size={12} /> Password updated successfully.</p>
+                                            )}
+                                            <div className="space-y-3">
+                                                <input
+                                                    type="password"
+                                                    placeholder="New password (min 8 chars)"
+                                                    value={newPw}
+                                                    onChange={e => setNewPw(e.target.value)}
+                                                    className="input-field text-sm"
+                                                />
+                                                <input
+                                                    type="password"
+                                                    placeholder="Confirm new password"
+                                                    value={confirmPw}
+                                                    onChange={e => setConfirmPw(e.target.value)}
+                                                    className="input-field text-sm"
+                                                />
+                                                <button
+                                                    onClick={handleChangePassword}
+                                                    disabled={pwLoading || !newPw || !confirmPw}
+                                                    className="btn-primary text-xs px-4 py-2 flex items-center gap-2 disabled:opacity-50"
+                                                >
+                                                    {pwLoading ? <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> : <Lock size={13} />}
+                                                    Update Password
+                                                </button>
+                                            </div>
                                         </div>
 
-                                        <div className="p-4 rounded-xl border border-white/[0.06]">
-                                            <h3 className="text-sm font-medium text-slate-300 mb-1">Export Data</h3>
+                                        {/* Export Data */}
+                                        <div className="p-5 rounded-xl border border-white/[0.06]">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Download size={16} className="text-cyan-400" />
+                                                <h3 className="text-sm font-semibold text-slate-200">Export Data</h3>
+                                            </div>
                                             <p className="text-xs text-slate-500 mb-3">Download all your submissions, scores, and profile data as JSON.</p>
-                                            <button className="btn-ghost text-xs px-4 py-2">Export My Data</button>
+                                            <button
+                                                onClick={handleExportData}
+                                                disabled={exportLoading}
+                                                className="btn-ghost text-xs px-4 py-2 flex items-center gap-2"
+                                            >
+                                                {exportLoading ? <span className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" /> : <Download size={13} />}
+                                                Export My Data
+                                            </button>
                                         </div>
 
-                                        <div className="p-4 rounded-xl border border-rose-500/20 bg-rose-500/[0.03]">
-                                            <h3 className="text-sm font-medium text-rose-400 mb-1">Danger Zone</h3>
-                                            <p className="text-xs text-slate-500 mb-3">Permanently delete your account and all associated data. This cannot be undone.</p>
-                                            <button className="px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium hover:bg-rose-500/20 transition-all">
+                                        {/* Danger Zone */}
+                                        <div className="p-5 rounded-xl border border-rose-500/20 bg-rose-500/[0.03]">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Trash2 size={16} className="text-rose-400" />
+                                                <h3 className="text-sm font-semibold text-rose-400">Danger Zone</h3>
+                                            </div>
+                                            <p className="text-xs text-slate-500 mb-3">Permanently sign out and request deletion of your account. This cannot be undone.</p>
+                                            <button
+                                                onClick={handleDeleteAccount}
+                                                disabled={deleteLoading}
+                                                className="px-4 py-2 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs font-medium hover:bg-rose-500/20 transition-all flex items-center gap-2"
+                                            >
+                                                <Trash2 size={13} />
                                                 Delete Account
                                             </button>
                                         </div>

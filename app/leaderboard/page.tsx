@@ -53,22 +53,28 @@ export default async function LeaderboardPage() {
         avatar: u.avatar || (u.display_name || u.username || 'U').slice(0, 2).toUpperCase(),
     }));
 
-    // Get real member counts for squads
-    const formattedSquads = await Promise.all((squads || []).map(async s => {
-        const { count } = await supabase
+    // Get real member counts for ALL squads in one query (avoids N+1)
+    const squadIds = (squads || []).map(s => s.id);
+    let memberCountMap: Record<string, number> = {};
+    if (squadIds.length > 0) {
+        const { data: memberCounts } = await supabase
             .from('squad_members')
-            .select('*', { count: 'exact', head: true })
-            .eq('squad_id', s.id);
-        return {
-            squadId: s.id,
-            rank: s.global_rank,
-            name: s.name,
-            members: count || 0,
-            avgAIScore: Number(s.avg_ai_score) || 0,
-            projectCount: s.project_count || 0,
-            rankChange: 0,
-            avatarEmoji: s.avatar_emoji || '🏆',
-        };
+            .select('squad_id')
+            .in('squad_id', squadIds);
+        (memberCounts || []).forEach(m => {
+            memberCountMap[m.squad_id] = (memberCountMap[m.squad_id] || 0) + 1;
+        });
+    }
+
+    const formattedSquads = (squads || []).map(s => ({
+        squadId: s.id,
+        rank: s.global_rank,
+        name: s.name,
+        members: memberCountMap[s.id] || 0,
+        avgAIScore: Number(s.avg_ai_score) || 0,
+        projectCount: s.project_count || 0,
+        rankChange: 0,
+        avatarEmoji: s.avatar_emoji || '🏆',
     }));
 
     return (

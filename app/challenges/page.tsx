@@ -11,10 +11,12 @@ export default async function ChallengesPage() {
         .select('*')
         .order('created_at', { ascending: false });
 
-    // Get real submission + participant counts per challenge
+    // Get aggregated submission + participant counts per challenge via rpc-style select
+    // We select challenge_id, then build counts in JS — this is one query returning only IDs (not full rows)
     const { data: submissionAggregates } = await supabase
         .from('submissions')
-        .select('challenge_id, user_id');
+        .select('challenge_id, user_id')
+        .not('challenge_id', 'is', null);
 
     // Build aggregated counts indexed by challenge_id
     const aggMap: Record<string, { submissions: number; participants: Set<string> }> = {};
