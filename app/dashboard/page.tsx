@@ -1,307 +1,81 @@
-'use client';
+import { createClient } from '@/lib/supabase/server';
+import DashboardClient from './DashboardClient';
+import { redirect } from 'next/navigation';
 
-import AppShell from '@/components/layout/AppShell';
-import { useStore } from '@/lib/store';
-import { mockSubmissions } from '@/lib/mock/submissions';
-import { mockChallenges } from '@/lib/mock/challenges';
-import LeagueBadge from '@/components/ui/LeagueBadge';
-import Avatar from '@/components/ui/Avatar';
-import { cn, getScoreColor, formatTimeUntil, formatRelativeTime, getRoleIcon, formatNumber, getTierLabel } from '@/lib/utils';
-import { Zap, TrendingUp, Code2, Star, Clock, ArrowRight, Flame, Target, GitCommit, Award, AlertTriangle, Users, Trophy, CheckCircle2 } from 'lucide-react';
-import Link from 'next/link';
-import {
-    RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
-} from 'recharts';
+export default async function DashboardPage() {
+    const supabase = await createClient();
 
-function getGreeting(): { text: string; emoji: string } {
-    const hour = new Date().getHours();
-    if (hour < 12) return { text: 'Good morning', emoji: '☀️' };
-    if (hour < 17) return { text: 'Good afternoon', emoji: '🌤️' };
-    if (hour < 21) return { text: 'Good evening', emoji: '🌆' };
-    return { text: 'Good night', emoji: '🌙' };
-}
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
 
-const activityFeed = [
-    { type: 'submission' as const, text: 'Submitted "Developer Portfolio CMS with GitHub Sync"', time: '11d ago', icon: GitCommit },
-    { type: 'score' as const, text: 'Received AI score of 77 for Portfolio CMS', time: '10d ago', icon: Star },
-    { type: 'league' as const, text: 'Promoted to Pro League! 🎉', time: '9d ago', icon: Trophy },
-    { type: 'squad' as const, text: 'Joined Squad "Sigma Protocol"', time: '7d ago', icon: Users },
-    { type: 'submission' as const, text: 'Submitted "FinTech Real-Time Dashboard"', time: '5d ago', icon: GitCommit },
-    { type: 'score' as const, text: 'Received AI score of 76 for FinTech Dashboard', time: '4d ago', icon: Star },
-];
+    if (!user || userError) {
+        redirect('/auth');
+    }
 
-const activityColors = {
-    submission: 'text-cyan-400 bg-cyan-500/15',
-    score: 'text-amber-400 bg-amber-500/15',
-    league: 'text-emerald-400 bg-emerald-500/15',
-    squad: 'text-indigo-400 bg-indigo-500/15',
-};
+    const { data: currentUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('id', user.id)
+        .single();
 
-function ScoreRadar({ scores }: { scores: { codeQuality: number; architecture: number; performance: number; security: number; requirementAdherence: number } }) {
-    const data = [
-        { subject: 'Code Quality', value: scores.codeQuality },
-        { subject: 'Architecture', value: scores.architecture },
-        { subject: 'Performance', value: scores.performance },
-        { subject: 'Security', value: scores.security },
-        { subject: 'Requirements', value: scores.requirementAdherence },
-    ];
-    return (
-        <ResponsiveContainer width="100%" height={200}>
-            <RadarChart data={data}>
-                <PolarGrid stroke="rgba(255,255,255,0.06)" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
-                <Radar dataKey="value" stroke="#6c63ff" fill="#6c63ff" fillOpacity={0.15} strokeWidth={2} dot={{ fill: '#6c63ff', r: 3 }} />
-                <Tooltip
-                    contentStyle={{ background: 'rgba(15,21,38,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
-                    labelStyle={{ color: '#e2e8f0' }}
-                />
-            </RadarChart>
-        </ResponsiveContainer>
-    );
-}
+    if (!currentUser) {
+        // User authenticated but no profile row yet — redirect to auth
+        redirect('/auth');
+    }
 
-export default function DashboardPage() {
-    const { currentUser } = useStore();
-    const activeChallenges = mockChallenges.filter(c => c.status === 'Active').slice(0, 3);
-    const greeting = getGreeting();
+    const { data: activeChallenges } = await supabase
+        .from('challenges')
+        .select('*')
+        .eq('status', 'Active')
+        .limit(3);
 
-    const avgScores = {
-        codeQuality: 76,
-        architecture: 73,
-        performance: 80,
-        security: 73,
-        requirementAdherence: 78,
+    const { data: recentSubmissions } = await supabase
+        .from('submissions')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('submitted_at', { ascending: false })
+        .limit(5);
+
+    // Compute avatar initials from display_name or email fallback
+    const displayName = currentUser.display_name || user.email?.split('@')[0] || 'User';
+    const nameParts = displayName.trim().split(' ');
+    const avatarInitials = nameParts.length >= 2
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+        : displayName.slice(0, 2).toUpperCase();
+
+    // Map database snake_case to frontend camelCase with null-safe defaults
+    const formattedUser = {
+        ...currentUser,
+        displayName,
+        avatar: currentUser.avatar || avatarInitials,
+        globalRank: currentUser.global_rank ?? 0,
+        roleRank: currentUser.role_rank ?? 0,
+        avgAIScore: currentUser.avg_ai_score ?? 0,
+        projectCount: currentUser.project_count ?? 0,
+        soloProjects: currentUser.solo_projects ?? 0,
+        squadProjects: currentUser.squad_projects ?? 0,
+        streak: currentUser.streak ?? 0,
+        techStack: currentUser.tech_stack || [],
+        league: (currentUser.league as 'Newbie' | 'Pro' | 'Elite') || 'Newbie',
+        role: currentUser.role || 'Full Stack Engineer',
     };
 
-    const stats = [
-        { label: 'Global Rank', value: `#${currentUser.globalRank}`, icon: TrendingUp, color: 'text-indigo-400', sub: `Top ${Math.round(currentUser.globalRank / 12400 * 100)}%` },
-        { label: 'Avg AI Score', value: `${currentUser.avgAIScore}`, icon: Star, color: 'text-amber-400', sub: 'Out of 100' },
-        { label: 'Projects Done', value: currentUser.projectCount.toString(), icon: Code2, color: 'text-cyan-400', sub: `${currentUser.soloProjects} solo · ${currentUser.squadProjects} squad` },
-        { label: 'Day Streak', value: `${currentUser.streak}d`, icon: Flame, color: 'text-rose-400', sub: 'Keep going!' },
-    ];
+    const formattedChallenges = (activeChallenges || []).map(c => ({
+        ...c,
+        submissionsCount: c.submissions_count,
+    }));
+
+    const formattedSubmissions = (recentSubmissions || []).map(s => ({
+        ...s,
+        challengeTitle: s.challenge_title,
+        totalScore: s.total_score,
+        submittedAt: s.submitted_at,
+    }));
 
     return (
-        <AppShell>
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Welcome header with time-of-day greeting */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <Avatar initials={currentUser.avatar} size="lg" online />
-                        <div>
-                            <h1 className="text-2xl font-bold text-white">
-                                {greeting.emoji} {greeting.text}, <span className="text-gradient">{currentUser.displayName.split(' ')[0]}</span>
-                            </h1>
-                            <div className="flex items-center gap-2 mt-1">
-                                <LeagueBadge league={currentUser.league} size="sm" />
-                                <span className="text-sm text-slate-500">· {getRoleIcon(currentUser.role)} {currentUser.role}</span>
-                            </div>
-                        </div>
-                    </div>
-                    <Link href="/challenges" className="btn-primary flex items-center gap-2 text-sm">
-                        <Zap size={16} /> Browse Challenges
-                    </Link>
-                </div>
-
-                {/* Animated stats row */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                    {stats.map(({ label, value, icon: Icon, color, sub }, idx) => (
-                        <div
-                            key={label}
-                            className="stat-card animate-slide-up"
-                            style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
-                        >
-                            <div className="flex items-center justify-between mb-2">
-                                <span className="text-xs text-slate-500 font-medium">{label}</span>
-                                <Icon size={16} className={color} />
-                            </div>
-                            <div className="text-2xl font-black text-white mb-0.5">{value}</div>
-                            <p className="text-xs text-slate-600">{sub}</p>
-                        </div>
-                    ))}
-                </div>
-
-                {/* Main content grid */}
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    {/* Left col: Score radar + progress */}
-                    <div className="lg:col-span-1 space-y-4">
-                        {/* Score radar */}
-                        <div className="glass-card p-5">
-                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                                <Target size={16} className="text-indigo-400" />
-                                Average Score Profile
-                            </h2>
-                            <ScoreRadar scores={avgScores} />
-                            <div className="grid grid-cols-2 gap-3 mt-2">
-                                {Object.entries(avgScores).map(([key, val]) => (
-                                    <div key={key} className="flex items-center justify-between">
-                                        <span className="text-xs text-slate-500 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</span>
-                                        <span className={cn('text-xs font-mono font-bold', getScoreColor(val))}>{val}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* League progress */}
-                        <div className="glass-card p-5">
-                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                                <Award size={16} className="text-amber-400" />
-                                League Progress
-                            </h2>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-slate-400">Pro → Elite</span>
-                                    <span className="text-slate-500">{currentUser.projectCount}/5 projects</span>
-                                </div>
-                                <div className="progress-bar">
-                                    <div className="progress-fill" style={{ width: `${(currentUser.projectCount / 5) * 100}%` }} />
-                                </div>
-                                <div className="flex items-center justify-between text-xs">
-                                    <span className="text-slate-400">Squad projects</span>
-                                    <span className="text-slate-500">{currentUser.squadProjects}/2 needed</span>
-                                </div>
-                                <div className="progress-bar">
-                                    <div className="progress-fill" style={{ width: `${(currentUser.squadProjects / 2) * 100}%`, background: 'linear-gradient(90deg, #f59e0b, #fbbf24)' }} />
-                                </div>
-                                <p className="text-xs text-slate-500 mt-2">
-                                    Need 0 more solo + 0 more squad projects to reach <span className="text-amber-400 font-medium">Elite</span>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Center/Right col: Active challenges + timeline + tech */}
-                    <div className="lg:col-span-2 space-y-4">
-                        {/* Active challenges with urgency pulse */}
-                        <div className="glass-card p-5">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                                    <Zap size={16} className="text-indigo-400" />
-                                    Active Challenges
-                                </h2>
-                                <Link href="/challenges" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
-                                    View all <ArrowRight size={12} />
-                                </Link>
-                            </div>
-                            <div className="space-y-3">
-                                {activeChallenges.map((ch) => {
-                                    const timeLeft = new Date(ch.deadline).getTime() - Date.now();
-                                    const isUrgent = timeLeft < 86400000 * 2; // < 48h
-                                    return (
-                                        <Link key={ch.id} href={`/challenges/${ch.id}`}>
-                                            <div className={cn(
-                                                'flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05] hover:border-indigo-500/20 hover:bg-indigo-500/[0.04] transition-all cursor-pointer',
-                                                isUrgent && 'border-rose-500/20 bg-rose-500/[0.03] hover:border-rose-500/30'
-                                            )}>
-                                                <div className={cn(
-                                                    'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0',
-                                                    isUrgent
-                                                        ? 'bg-gradient-to-br from-rose-500/20 to-amber-500/10 border border-rose-500/20'
-                                                        : 'bg-gradient-to-br from-indigo-500/20 to-cyan-500/10 border border-indigo-500/20'
-                                                )}>
-                                                    {isUrgent ? <AlertTriangle size={16} className="text-rose-400" /> : <Zap size={16} className="text-indigo-400" />}
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-sm font-medium text-slate-200 truncate">{ch.title}</p>
-                                                    <p className="text-xs text-slate-500">Tier {ch.tier} · {getTierLabel(ch.tier)} · {ch.mode}</p>
-                                                </div>
-                                                <div className="text-right flex-shrink-0">
-                                                    <div className={cn('flex items-center gap-1 text-xs', isUrgent ? 'text-rose-400 font-semibold' : 'text-slate-400')}>
-                                                        <Clock size={11} className={isUrgent ? 'animate-pulse' : ''} />
-                                                        {formatTimeUntil(ch.deadline)}
-                                                    </div>
-                                                    <p className="text-[10px] text-slate-600">{ch.submissionsCount} submitted</p>
-                                                </div>
-                                            </div>
-                                        </Link>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Recent submissions */}
-                        <div className="glass-card p-5">
-                            <div className="flex items-center justify-between mb-4">
-                                <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
-                                    <GitCommit size={16} className="text-cyan-400" />
-                                    Recent Submissions
-                                </h2>
-                            </div>
-                            <div className="space-y-3">
-                                {mockSubmissions.map((sub) => (
-                                    <div key={sub.id} className="flex items-center gap-4 p-3 rounded-xl bg-white/[0.02] border border-white/[0.05]">
-                                        <div className={cn(
-                                            'w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-sm font-bold',
-                                            'bg-emerald-500/10 border border-emerald-500/20'
-                                        )}>
-                                            <span className={cn('font-mono text-xs font-bold', getScoreColor(sub.totalScore))}>{sub.totalScore}</span>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-sm font-medium text-slate-200 truncate">{sub.challengeTitle}</p>
-                                            <p className="text-xs text-slate-500">Tier {sub.tier} · {formatRelativeTime(sub.submittedAt)}</p>
-                                        </div>
-                                        <div className="flex-shrink-0">
-                                            <span className="badge badge-newbie">Completed</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        {/* Activity Timeline */}
-                        <div className="glass-card p-5">
-                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                                <CheckCircle2 size={16} className="text-emerald-400" />
-                                Activity Timeline
-                            </h2>
-                            <div className="relative">
-                                {/* Timeline line */}
-                                <div className="absolute left-[17px] top-2 bottom-2 w-px bg-gradient-to-b from-indigo-500/30 via-cyan-500/20 to-transparent" />
-                                <div className="space-y-3">
-                                    {activityFeed.map((item, idx) => {
-                                        const Icon = item.icon;
-                                        const colorClass = activityColors[item.type];
-                                        return (
-                                            <div key={idx} className="flex items-start gap-3 relative pl-1">
-                                                <div className={cn('w-[34px] h-[34px] rounded-lg flex items-center justify-center flex-shrink-0 z-10', colorClass)}>
-                                                    <Icon size={14} />
-                                                </div>
-                                                <div className="flex-1 min-w-0 pt-1">
-                                                    <p className="text-sm text-slate-300">{item.text}</p>
-                                                    <p className="text-[10px] text-slate-600 mt-0.5">{item.time}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Tech stack */}
-                        <div className="glass-card p-5">
-                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
-                                <Code2 size={16} className="text-emerald-400" />
-                                Tech Stack Usage
-                            </h2>
-                            <div className="space-y-2.5">
-                                {currentUser.techStack.map(({ name, count }) => {
-                                    const max = Math.max(...currentUser.techStack.map(t => t.count));
-                                    const pct = Math.round((count / max) * 100);
-                                    return (
-                                        <div key={name} className="flex items-center gap-3">
-                                            <span className="text-xs text-slate-400 w-24 flex-shrink-0 font-mono">{name}</span>
-                                            <div className="flex-1 progress-bar">
-                                                <div className="progress-fill" style={{ width: `${pct}%` }} />
-                                            </div>
-                                            <span className="text-xs text-slate-500 w-8 text-right">{count}x</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </AppShell>
+        <DashboardClient
+            currentUser={formattedUser}
+            activeChallenges={formattedChallenges}
+            recentSubmissions={formattedSubmissions}
+        />
     );
 }
-

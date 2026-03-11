@@ -176,7 +176,7 @@ export function isValidGitHubRepo(url: string): boolean {
 }
 
 // ─── Avatar Color ─────────────────────────────────────────────────────────────
-export function getAvatarColor(initials: string): string {
+export function getAvatarColor(initials: string | null | undefined): string {
     const colors = [
         'from-indigo-500 to-purple-600',
         'from-cyan-500 to-blue-600',
@@ -185,6 +185,7 @@ export function getAvatarColor(initials: string): string {
         'from-rose-500 to-pink-600',
         'from-violet-500 to-indigo-600',
     ];
+    if (!initials || initials.length === 0) return colors[0];
     const index = initials.charCodeAt(0) % colors.length;
     return colors[index];
 }

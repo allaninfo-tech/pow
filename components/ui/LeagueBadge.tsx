@@ -4,7 +4,7 @@ import { League } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 interface LeagueBadgeProps {
-    league: League;
+    league: League | null | undefined;
     size?: 'sm' | 'md' | 'lg';
     showIcon?: boolean;
     className?: string;
@@ -51,7 +51,7 @@ const sizeConfig = {
 };
 
 export default function LeagueBadge({ league, size = 'md', showIcon = true, className }: LeagueBadgeProps) {
-    const config = leagueConfig[league];
+    const config = leagueConfig[league ?? 'Newbie'];
     const sz = sizeConfig[size];
 
     return (

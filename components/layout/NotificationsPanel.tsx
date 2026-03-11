@@ -2,50 +2,7 @@
 
 import { useStore } from '@/lib/store';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import { X, Zap, Trophy, Users, Star, Bell, Check, CheckCheck } from 'lucide-react';
-
-const mockNotifications = [
-    {
-        id: '1',
-        type: 'challenge' as const,
-        title: 'New Challenge Available',
-        description: 'FinTech Real-Time Transaction Dashboard — Tier 4 Expert',
-        time: new Date(Date.now() - 1800000).toISOString(),
-        read: false,
-    },
-    {
-        id: '2',
-        type: 'score' as const,
-        title: 'Submission Scored',
-        description: 'Your "Developer Portfolio CMS" received an AI score of 77/100',
-        time: new Date(Date.now() - 7200000).toISOString(),
-        read: false,
-    },
-    {
-        id: '3',
-        type: 'squad' as const,
-        title: 'Squad Invite',
-        description: 'Zara Chen invited you to join "Sigma Protocol"',
-        time: new Date(Date.now() - 14400000).toISOString(),
-        read: false,
-    },
-    {
-        id: '4',
-        type: 'league' as const,
-        title: 'League Promotion!',
-        description: 'You\'ve been promoted from Newbie to Pro League 🎉',
-        time: new Date(Date.now() - 86400000).toISOString(),
-        read: true,
-    },
-    {
-        id: '5',
-        type: 'challenge' as const,
-        title: 'Challenge Deadline Approaching',
-        description: 'AI-Powered Supply Chain Optimizer ends in 2 days',
-        time: new Date(Date.now() - 172800000).toISOString(),
-        read: true,
-    },
-];
+import { X, Zap, Trophy, Users, Star, Bell, CheckCheck } from 'lucide-react';
 
 const typeIcons = {
     challenge: Zap,
@@ -61,8 +18,22 @@ const typeColors = {
     league: 'text-emerald-400 bg-emerald-500/15',
 };
 
+type NotificationType = keyof typeof typeIcons;
+
+interface Notification {
+    id: string;
+    type: NotificationType;
+    title: string;
+    description: string;
+    time: string;
+    read: boolean;
+}
+
 export default function NotificationsPanel() {
     const { ui, toggleNotifications, markNotificationsRead, unreadNotifications } = useStore();
+
+    // Real notifications will be fetched from DB. For now, new users have none.
+    const notifications: Notification[] = [];
 
     if (!ui.notificationsOpen) return null;
 
@@ -111,43 +82,57 @@ export default function NotificationsPanel() {
                     </div>
                 </div>
 
-                {/* Notifications list */}
+                {/* Notifications list or empty state */}
                 <div className="flex-1 overflow-y-auto scrollbar-hide">
-                    {mockNotifications.map((notif) => {
-                        const Icon = typeIcons[notif.type];
-                        const colorClass = typeColors[notif.type];
-                        return (
-                            <div
-                                key={notif.id}
-                                className={cn(
-                                    'flex items-start gap-3 px-5 py-4 border-b border-white/[0.04] transition-all hover:bg-white/[0.02] cursor-pointer',
-                                    !notif.read && 'bg-indigo-500/[0.03]'
-                                )}
-                            >
-                                <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', colorClass)}>
-                                    <Icon size={16} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex items-start justify-between gap-2">
-                                        <p className={cn('text-sm font-medium', notif.read ? 'text-slate-400' : 'text-slate-200')}>
-                                            {notif.title}
-                                        </p>
-                                        {!notif.read && (
-                                            <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0 mt-1.5" />
-                                        )}
+                    {notifications.length > 0 ? (
+                        notifications.map((notif) => {
+                            const Icon = typeIcons[notif.type];
+                            const colorClass = typeColors[notif.type];
+                            return (
+                                <div
+                                    key={notif.id}
+                                    className={cn(
+                                        'flex items-start gap-3 px-5 py-4 border-b border-white/[0.04] transition-all hover:bg-white/[0.02] cursor-pointer',
+                                        !notif.read && 'bg-indigo-500/[0.03]'
+                                    )}
+                                >
+                                    <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5', colorClass)}>
+                                        <Icon size={16} />
                                     </div>
-                                    <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{notif.description}</p>
-                                    <p className="text-[10px] text-slate-600 mt-1.5">{formatRelativeTime(notif.time)}</p>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between gap-2">
+                                            <p className={cn('text-sm font-medium', notif.read ? 'text-slate-400' : 'text-slate-200')}>
+                                                {notif.title}
+                                            </p>
+                                            {!notif.read && (
+                                                <span className="w-2 h-2 rounded-full bg-indigo-400 flex-shrink-0 mt-1.5" />
+                                            )}
+                                        </div>
+                                        <p className="text-xs text-slate-500 mt-0.5 leading-relaxed">{notif.description}</p>
+                                        <p className="text-[10px] text-slate-600 mt-1.5">{formatRelativeTime(notif.time)}</p>
+                                    </div>
                                 </div>
+                            );
+                        })
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full gap-4 px-8 text-center py-16">
+                            <div className="w-16 h-16 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center">
+                                <Bell size={24} className="text-slate-700" />
                             </div>
-                        );
-                    })}
+                            <div>
+                                <p className="text-sm font-semibold text-slate-400">No notifications yet</p>
+                                <p className="text-xs text-slate-600 mt-1 leading-relaxed">
+                                    You&apos;ll be notified when challenges are posted, your submissions are scored, or you receive squad invites.
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/[0.06]">
                     <button className="w-full py-2.5 rounded-xl text-sm font-medium text-indigo-400 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all">
-                        View All Notifications
+                        Notification Settings
                     </button>
                 </div>
             </div>

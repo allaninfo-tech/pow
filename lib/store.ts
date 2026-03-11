@@ -106,7 +106,7 @@ export const useStore = create<AppState>()(
                 })),
 
             // Notifications
-            unreadNotifications: 3,
+            unreadNotifications: 0,
             markNotificationsRead: () => set({ unreadNotifications: 0 }),
         }),
         {

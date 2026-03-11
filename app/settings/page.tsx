@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme';
 import { cn } from '@/lib/utils';
 import Avatar from '@/components/ui/Avatar';
+import { createClient } from '@/lib/supabase/client';
 import { User, Github, Bell, Palette, Shield, Save, Check, ExternalLink, Moon, Sun, Monitor } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -18,18 +19,50 @@ const tabs = [
 ];
 
 export default function SettingsPage() {
-    const { currentUser } = useStore();
+    const { } = useStore();
     const { theme, setTheme } = useTheme();
     const [tab, setTab] = useState('profile');
     const [saved, setSaved] = useState(false);
+    const [avatarInitials, setAvatarInitials] = useState<string>('?');
+    const [githubUsername, setGithubUsername] = useState<string | null>(null);
+    const [githubConnected, setGithubConnected] = useState(false);
 
     const [profile, setProfile] = useState({
-        displayName: currentUser.displayName,
-        username: currentUser.username,
-        bio: currentUser.bio || '',
-        location: currentUser.location || '',
-        website: currentUser.website || '',
+        displayName: '',
+        username: '',
+        bio: '',
+        location: '',
+        website: '',
     });
+
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (!user) return;
+            const { data } = await supabase
+                .from('users')
+                .select('display_name, username, bio, location, website, avatar, github_username, github_connected')
+                .eq('id', user.id)
+                .single();
+            if (data) {
+                const displayName = data.display_name || user.email?.split('@')[0] || '';
+                const nameParts = displayName.trim().split(' ');
+                const initials = nameParts.length >= 2
+                    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                    : displayName.slice(0, 2).toUpperCase();
+                setAvatarInitials(data.avatar || initials);
+                setGithubUsername(data.github_username);
+                setGithubConnected(data.github_connected ?? false);
+                setProfile({
+                    displayName,
+                    username: data.username || '',
+                    bio: data.bio || '',
+                    location: data.location || '',
+                    website: data.website || '',
+                });
+            }
+        });
+    }, []);
 
     const [notifPrefs, setNotifPrefs] = useState({
         challengeNew: true,
@@ -40,7 +73,20 @@ export default function SettingsPage() {
         emailDigest: false,
     });
 
-    const handleSave = () => {
+    const handleSave = async () => {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await supabase
+                .from('users')
+                .update({
+                    display_name: profile.displayName,
+                    bio: profile.bio,
+                    location: profile.location,
+                    website: profile.website,
+                })
+                .eq('id', user.id);
+        }
         setSaved(true);
         setTimeout(() => setSaved(false), 2000);
     };
@@ -94,9 +140,45 @@ export default function SettingsPage() {
                                     </div>
 
                                     <div className="flex items-center gap-4">
-                                        <Avatar initials={currentUser.avatar} size="xl" />
+                                        <Avatar initials={avatarInitials} size="xl" />
                                         <div>
-                                            <button className="btn-ghost text-xs px-4 py-1.5">Change Avatar</button>
+                                            <input 
+                                                type="file" 
+                                                id="avatar-upload" 
+                                                className="hidden" 
+                                                accept="image/*"
+                                                onChange={async (e) => {
+                                                    const file = e.target.files?.[0];
+                                                    if (!file) return;
+                                                    
+                                                    const supabase = createClient();
+                                                    const { data: { user } } = await supabase.auth.getUser();
+                                                    if (!user) return;
+
+                                                    const fileExt = file.name.split('.').pop();
+                                                    const filePath = `${user.id}-${Math.random()}.${fileExt}`;
+
+                                                    const { error: uploadError } = await supabase.storage
+                                                        .from('avatars')
+                                                        .upload(filePath, file);
+
+                                                    if (!uploadError) {
+                                                        const { data: { publicUrl } } = supabase.storage
+                                                            .from('avatars')
+                                                            .getPublicUrl(filePath);
+                                                        
+                                                        await supabase
+                                                            .from('users')
+                                                            .update({ avatar: publicUrl })
+                                                            .eq('id', user.id);
+                                                            
+                                                        setAvatarInitials(publicUrl); // Setting publicUrl directly to Avatar component works if Avatar component supports image URLs
+                                                    }
+                                                }}
+                                            />
+                                            <label htmlFor="avatar-upload" className="btn-ghost text-xs px-4 py-1.5 cursor-pointer inline-block">
+                                                Change Avatar
+                                            </label>
                                             <p className="text-[10px] text-slate-600 mt-1">PNG, JPG up to 2MB</p>
                                         </div>
                                     </div>
@@ -175,16 +257,29 @@ export default function SettingsPage() {
                                         <p className="text-xs text-slate-500">Manage your linked services.</p>
                                     </div>
 
-                                    <div className="p-4 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20 flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-slate-200">
-                                            <Github size={20} />
+                                    {githubConnected && githubUsername ? (
+                                        <div className="p-4 rounded-xl bg-emerald-500/[0.05] border border-emerald-500/20 flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/[0.06] flex items-center justify-center text-slate-200">
+                                                <Github size={20} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-slate-200">GitHub</p>
+                                                <p className="text-xs text-emerald-400 flex items-center gap-1"><Check size={10} /> Connected as @{githubUsername}</p>
+                                            </div>
+                                            <button className="btn-ghost text-xs px-3 py-1.5">Disconnect</button>
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="text-sm font-medium text-slate-200">GitHub</p>
-                                            <p className="text-xs text-emerald-400 flex items-center gap-1"><Check size={10} /> Connected as @{currentUser.githubUsername}</p>
+                                    ) : (
+                                        <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-4">
+                                            <div className="w-10 h-10 rounded-xl bg-white/[0.04] flex items-center justify-center text-slate-500">
+                                                <Github size={20} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="text-sm font-medium text-slate-400">GitHub</p>
+                                                <p className="text-xs text-slate-600">Not connected</p>
+                                            </div>
+                                            <button className="btn-primary text-xs px-3 py-1.5">Connect</button>
                                         </div>
-                                        <button className="btn-ghost text-xs px-3 py-1.5">Disconnect</button>
-                                    </div>
+                                    )}
 
                                     {['GitLab', 'Google'].map(service => (
                                         <div key={service} className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center gap-4">

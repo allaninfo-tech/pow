@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Terminal, Github, Mail, Lock, User, Eye, EyeOff, ArrowRight, Check, ShieldCheck } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import TypewriterTerminal from '@/components/ui/TypewriterTerminal';
+import { createClient } from '@/lib/supabase/client';
 
 function getPasswordStrength(pw: string): { score: number; label: string; color: string } {
     let score = 0;
@@ -37,16 +38,33 @@ export default function AuthPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [step, setStep] = useState(1);
     const [loading, setLoading] = useState(false);
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [name, setName] = useState('');
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
     const strength = useMemo(() => getPasswordStrength(password), [password]);
+
+    const supabase = createClient();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        setTimeout(() => {
+        setError(null);
+        setSuccess(null);
+        const { error: authError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+        });
+
+        if (authError) {
+            setError(authError.message);
             setLoading(false);
-            router.push('/dashboard');
-        }, 1200);
+            return;
+        }
+
+        router.refresh();
+        router.push('/dashboard');
     };
 
     const handleRegister = async (e: React.FormEvent) => {
@@ -54,10 +72,53 @@ export default function AuthPage() {
         if (step === 1) { setStep(2); return; }
         if (step === 2 && !selectedRole) return;
         setLoading(true);
-        setTimeout(() => {
+        setError(null);
+        setSuccess(null);
+
+        const { data: authData, error: authError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    display_name: name || email.split('@')[0],
+                    role: selectedRole,
+                }
+            }
+        });
+
+        if (authError) {
+            setError(authError.message);
             setLoading(false);
-            router.push('/dashboard');
-        }, 1500);
+            return;
+        }
+
+        // Insert user profile row
+        if (authData.user) {
+            const displayName = name || email.split('@')[0];
+            await supabase.from('users').upsert({
+                id: authData.user.id,
+                email: email,
+                username: email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '') + Math.floor(Math.random() * 1000),
+                display_name: displayName,
+                role: selectedRole,
+                league: 'Newbie',
+                joined_at: new Date().toISOString()
+            }, { onConflict: 'id' });
+        }
+
+        setLoading(false);
+
+        // If email confirmation is required, the session won't be set yet
+        if (!authData.session) {
+            setSuccess('Account created! Check your email to confirm your account, then sign in.');
+            setTab('login');
+            setStep(1);
+            return;
+        }
+
+        // Session is active — go straight to dashboard
+        router.refresh();
+        router.push('/dashboard');
     };
 
     return (
@@ -134,6 +195,25 @@ export default function AuthPage() {
                         ))}
                     </div>
 
+                    {/* Loading Bar */}
+                    {loading && (
+                        <div className="fixed top-0 left-0 right-0 h-1 z-50 overflow-hidden bg-white/10">
+                            <div className="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 absolute left-0 w-1/3 animate-[slideRight_1s_infinite_linear]" />
+                            <style>{`
+                                @keyframes slideRight {
+                                    0% { transform: translateX(-100%); }
+                                    100% { transform: translateX(300%); }
+                                }
+                            `}</style>
+                        </div>
+                    )}
+
+                    {success && (
+                        <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm mb-4">
+                            {success}
+                        </div>
+                    )}
+
                     {tab === 'login' ? (
                         <div>
                             <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
@@ -152,11 +232,23 @@ export default function AuthPage() {
                             </div>
 
                             <form onSubmit={handleLogin} className="space-y-4">
+                                {error && (
+                                    <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+                                        {error}
+                                    </div>
+                                )}
                                 <div>
                                     <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                                     <div className="relative">
                                         <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                                        <input type="email" placeholder="you@example.com" className="input-field pl-10" defaultValue="" />
+                                        <input
+                                            type="email"
+                                            placeholder="you@example.com"
+                                            className="input-field pl-10"
+                                            value={email}
+                                            onChange={e => setEmail(e.target.value)}
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div>
@@ -167,7 +259,9 @@ export default function AuthPage() {
                                             type={showPassword ? 'text' : 'password'}
                                             placeholder=""
                                             className="input-field pl-10 pr-10"
-                                            defaultValue="password"
+                                            value={password}
+                                            onChange={e => setPassword(e.target.value)}
+                                            required
                                         />
                                         <button
                                             type="button"
@@ -208,18 +302,37 @@ export default function AuthPage() {
                                     </div>
 
                                     <form onSubmit={handleRegister} className="space-y-4">
+                                        {error && (
+                                            <div className="p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm">
+                                                {error}
+                                            </div>
+                                        )}
                                         <div>
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Full Name</label>
                                             <div className="relative">
                                                 <User size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                <input type="text" placeholder="Your Name" className="input-field pl-10" />
+                                                <input
+                                                    type="text"
+                                                    placeholder="Your Name"
+                                                    className="input-field pl-10"
+                                                    value={name}
+                                                    onChange={e => setName(e.target.value)}
+                                                    required
+                                                />
                                             </div>
                                         </div>
                                         <div>
                                             <label className="block text-xs font-medium text-slate-400 mb-1.5">Email</label>
                                             <div className="relative">
                                                 <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" />
-                                                <input type="email" placeholder="you@example.com" className="input-field pl-10" />
+                                                <input
+                                                    type="email"
+                                                    placeholder="you@example.com"
+                                                    className="input-field pl-10"
+                                                    value={email}
+                                                    onChange={e => setEmail(e.target.value)}
+                                                    required
+                                                />
                                             </div>
                                         </div>
                                         <div>

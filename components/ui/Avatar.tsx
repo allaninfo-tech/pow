@@ -3,7 +3,7 @@
 import { cn, getAvatarColor } from '@/lib/utils';
 
 interface AvatarProps {
-    initials: string;
+    initials: string | null | undefined;
     size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     className?: string;
     online?: boolean;
@@ -18,17 +18,28 @@ const sizeMap = {
 };
 
 export default function Avatar({ initials, size = 'md', className, online }: AvatarProps) {
+    const displayInitials = initials || '?';
+    const isImage = displayInitials.startsWith('http');
+    
     return (
         <div className={cn('relative flex-shrink-0', className)}>
-            <div
-                className={cn(
-                    'bg-gradient-to-br flex items-center justify-center font-bold text-white',
-                    sizeMap[size],
-                    getAvatarColor(initials)
-                )}
-            >
-                {initials}
-            </div>
+            {isImage ? (
+                <img
+                    src={displayInitials}
+                    alt="Avatar"
+                    className={cn('object-cover', sizeMap[size])}
+                />
+            ) : (
+                <div
+                    className={cn(
+                        'bg-gradient-to-br flex items-center justify-center font-bold text-white',
+                        sizeMap[size],
+                        getAvatarColor(displayInitials)
+                    )}
+                >
+                    {displayInitials.slice(0, 2)}
+                </div>
+            )}
             {online !== undefined && (
                 <span
                     className={cn(

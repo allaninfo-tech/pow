@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useStore } from '@/lib/store';
 import { useTheme } from '@/lib/theme';
 import { cn, getLeagueIcon, getAvatarColor } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
+import { createClient } from '@/lib/supabase/client';
 import {
     LayoutDashboard,
     Zap,
@@ -23,6 +24,7 @@ import {
     Moon,
     Sun,
     GalleryVerticalEnd,
+    Shield,
 } from 'lucide-react';
 
 const navItems = [
@@ -31,18 +33,52 @@ const navItems = [
     { href: '/showcase', label: 'Showcase', icon: GalleryVerticalEnd },
     { href: '/leaderboard', label: 'Leaderboard', icon: Trophy },
     { href: '/squad', label: 'My Squad', icon: Users },
-    { href: '/profile/dev.user', label: 'Profile', icon: User },
     { href: '/resume', label: 'Resume', icon: FileText },
 ];
 
 export default function Sidebar() {
     const pathname = usePathname();
-    const { ui, toggleSidebar, currentUser, unreadNotifications, toggleNotifications } = useStore();
+    const router = useRouter();
+    const { ui, toggleSidebar, unreadNotifications, toggleNotifications } = useStore();
     const { resolvedTheme, setTheme } = useTheme();
     const collapsed = ui.sidebarCollapsed;
 
     const [hoveredLabel, setHoveredLabel] = useState<string | null>(null);
     const [hoverTop, setHoverTop] = useState<number>(0);
+    const [realUser, setRealUser] = useState<{ displayName: string; avatar: string; league: string; username: string, isAdmin: boolean } | null>(null);
+
+    useEffect(() => {
+        const supabase = createClient();
+        supabase.auth.getUser().then(async ({ data: { user } }) => {
+            if (!user) return;
+            const { data } = await supabase
+                .from('users')
+                .select('display_name, avatar, league, username, is_admin')
+                .eq('id', user.id)
+                .single();
+            if (data) {
+                const userData = data as any;
+                const displayName = userData.display_name || user.email?.split('@')[0] || 'User';
+                const nameParts = displayName.trim().split(' ');
+                const initials = nameParts.length >= 2
+                    ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
+                    : displayName.slice(0, 2).toUpperCase();
+                setRealUser({
+                    displayName,
+                    avatar: userData.avatar || initials,
+                    league: userData.league || 'Newbie',
+                    username: userData.username || '',
+                    isAdmin: userData.is_admin || false,
+                });
+            }
+        });
+    }, []);
+
+    const handleLogout = async () => {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+        router.push('/auth');
+    };
 
     const handleMouseEnter = (e: React.MouseEvent, label: string) => {
         if (!collapsed) return;
@@ -54,6 +90,10 @@ export default function Sidebar() {
     const handleMouseLeave = () => {
         setHoveredLabel(null);
     };
+
+    const displayName = realUser?.displayName ?? '…';
+    const avatar = realUser?.avatar ?? '?';
+    const league = (realUser?.league ?? 'Newbie') as 'Newbie' | 'Pro' | 'Elite';
 
     return (
         <>
@@ -98,6 +138,18 @@ export default function Sidebar() {
                             </Link>
                         );
                     })}
+                    {realUser?.isAdmin && (
+                        <Link
+                            href="/admin"
+                            className={cn('nav-item text-rose-400 hover:text-rose-300 hover:bg-rose-500/10', pathname.startsWith('/admin') && 'bg-rose-500/15 border-rose-500/20 text-rose-300', collapsed && 'justify-center px-0')}
+                            aria-label={collapsed ? 'Admin Panel' : undefined}
+                            onMouseEnter={(e) => handleMouseEnter(e, 'Admin Panel')}
+                            onMouseLeave={handleMouseLeave}
+                        >
+                            <Shield size={18} className="flex-shrink-0" />
+                            {!collapsed && <span>Admin Panel</span>}
+                        </Link>
+                    )}
                 </nav>
 
                 {/* Bottom section */}
@@ -144,31 +196,37 @@ export default function Sidebar() {
                         {!collapsed && <span>{resolvedTheme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>}
                     </button>
 
-                    {/* User card */}
-                    <div className={cn(
-                        'flex items-center gap-2 p-2 rounded-xl mt-2',
-                        'bg-white/[0.03] border border-white/[0.06]',
-                        collapsed && 'justify-center cursor-pointer'
-                    )}
-                        onMouseEnter={(e) => handleMouseEnter(e, currentUser.displayName)}
+                    {/* Real user card */}
+                    <div
+                        className={cn(
+                            'flex items-center gap-2 p-2 rounded-xl mt-2',
+                            'bg-white/[0.03] border border-white/[0.06]',
+                            collapsed && 'justify-center cursor-pointer'
+                        )}
+                        onMouseEnter={(e) => handleMouseEnter(e, displayName)}
                         onMouseLeave={handleMouseLeave}
                     >
                         <div className={cn(
                             'w-8 h-8 rounded-lg bg-gradient-to-br flex items-center justify-center text-xs font-bold text-white flex-shrink-0',
-                            getAvatarColor(currentUser.avatar)
+                            getAvatarColor(avatar)
                         )}>
-                            {currentUser.avatar}
+                            {avatar}
                         </div>
                         {!collapsed && (
                             <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-slate-200 truncate">{currentUser.displayName}</p>
+                                <p className="text-xs font-semibold text-slate-200 truncate">{displayName}</p>
                                 <p className="text-[10px] text-slate-500 truncate">
-                                    {getLeagueIcon(currentUser.league)} {currentUser.league} League
+                                    {getLeagueIcon(league)} {league} League
                                 </p>
                             </div>
                         )}
                         {!collapsed && (
-                            <button className="text-slate-600 hover:text-rose-400 transition-colors" title="Logout" aria-label="Logout">
+                            <button
+                                onClick={handleLogout}
+                                className="text-slate-600 hover:text-rose-400 transition-colors"
+                                title="Logout"
+                                aria-label="Logout"
+                            >
                                 <LogOut size={14} />
                             </button>
                         )}

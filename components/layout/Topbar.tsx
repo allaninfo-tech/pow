@@ -1,10 +1,10 @@
 'use client';
 
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useStore } from '@/lib/store';
-import { Search, Bell, Menu, ChevronRight, Zap } from 'lucide-react';
+import { Bell, Menu, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import Link from 'next/link';
 
 const breadcrumbMap: Record<string, string> = {
     dashboard: 'Dashboard',
@@ -72,23 +72,6 @@ export default function Topbar() {
                 <Breadcrumb />
             </div>
 
-            {/* Search */}
-            <div className="relative hidden md:block">
-                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-                <input
-                    type="text"
-                    placeholder="Search challenges, users… (⌘K)"
-                    className="input-field pl-9 w-64 text-sm h-9"
-                    readOnly
-                />
-            </div>
-
-            {/* Active challenge indicator */}
-            <Link href="/challenges" className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-xs font-medium text-indigo-300 hover:bg-indigo-500/15 transition-colors">
-                <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 animate-pulse" />
-                <Zap size={12} />
-                4 Active
-            </Link>
 
             {/* Notifications */}
             <button
