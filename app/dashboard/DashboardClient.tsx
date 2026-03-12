@@ -69,10 +69,12 @@ function EmptyState({ icon: Icon, title, description, cta, ctaHref }: {
 export default function DashboardClient({
     currentUser,
     activeChallenges,
+    myChallenges,
     recentSubmissions
 }: {
     currentUser: any;
     activeChallenges: any[];
+    myChallenges: any[];
     recentSubmissions: any[];
 }) {
     const greeting = getGreeting();
@@ -226,12 +228,68 @@ export default function DashboardClient({
 
                     {/* Center/Right col: Active challenges + submissions + timeline */}
                     <div className="lg:col-span-2 space-y-4">
+                        {/* My Challenges (if any) */}
+                        {myChallenges.length > 0 && (
+                            <div className="glass-card p-5 border-emerald-500/10">
+                                <div className="flex items-center justify-between mb-4">
+                                    <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                                        <Code2 size={16} className="text-emerald-400" />
+                                        My Challenges
+                                    </h2>
+                                </div>
+                                <div className="space-y-3">
+                                    {myChallenges.map((ch: any) => {
+                                        const timeLeft = new Date(ch.deadline).getTime() - Date.now();
+                                        const isUrgent = timeLeft < 86400000 * 2;
+                                        return (
+                                            <Link key={ch.id} href={`/challenges/${ch.id}`}>
+                                                <div className={cn(
+                                                    'flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-xl border transition-all cursor-pointer',
+                                                    isUrgent
+                                                        ? 'bg-rose-500/[0.03] border-rose-500/20 hover:border-rose-500/30'
+                                                        : 'bg-emerald-500/[0.02] border-emerald-500/10 hover:border-emerald-500/30 hover:bg-emerald-500/[0.04]'
+                                                )}>
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={cn(
+                                                            'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                                                            isUrgent ? 'bg-rose-500/10 text-rose-400' : 'bg-emerald-500/10 text-emerald-400'
+                                                        )}>
+                                                            <Zap size={18} />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="text-sm font-semibold text-slate-200 line-clamp-1 group-hover:text-white transition-colors">{ch.title}</h3>
+                                                            <div className="flex items-center gap-3 mt-1 text-xs text-slate-500">
+                                                                <span className="flex items-center gap-1"><Users size={12} /> {ch.submissionsCount} submitted</span>
+                                                                <span className={cn('flex items-center gap-1 font-medium', isUrgent && 'text-rose-400')}>
+                                                                    <Clock size={12} /> {formatTimeUntil(ch.deadline)} left
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex-shrink-0">
+                                                        <button className={cn(
+                                                            'w-full sm:w-auto px-4 py-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors',
+                                                            isUrgent
+                                                                ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                                                                : 'bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+                                                        )}>
+                                                            Submit <ArrowRight size={14} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        )}
+
                         {/* Active challenges */}
                         <div className="glass-card p-5">
                             <div className="flex items-center justify-between mb-4">
                                 <h2 className="text-sm font-semibold text-slate-300 flex items-center gap-2">
                                     <Zap size={16} className="text-indigo-400" />
-                                    Active Challenges
+                                    Explore Challenges
                                 </h2>
                                 <Link href="/challenges" className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1">
                                     View all <ArrowRight size={12} />

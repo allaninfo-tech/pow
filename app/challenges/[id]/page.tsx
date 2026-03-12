@@ -33,6 +33,22 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
         alreadyJoined = !!participation;
     }
 
+    // Fetch up to 5 users who joined for social proof (avatar stack)
+    const { data: recentParticipations } = await supabase
+        .from('participations')
+        .select(`
+            users (
+                avatar,
+                display_name
+            )
+        `)
+        .eq('challenge_id', challenge.id)
+        .order('joined_at', { ascending: false })
+        .limit(5);
+    
+    // Extract the inner users array from the join
+    const recentParticipants = (recentParticipations || []).map(p => p.users as any).filter(Boolean);
+
     // Map snake_case DB fields to camelCase for template
     const c = {
         id: challenge.id,
@@ -216,6 +232,7 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                                     userId={userId}
                                     initialJoined={alreadyJoined}
                                     initialCount={c.participantsCount}
+                                    recentParticipants={recentParticipants}
                                 />
                             </div>
                         )}

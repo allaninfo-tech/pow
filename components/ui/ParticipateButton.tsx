@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import { cn } from '@/lib/utils';
 import { Users, Loader2, CheckCircle, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import AvatarStack from './AvatarStack';
 
 interface Props {
     challengeId: string;
@@ -13,10 +14,11 @@ interface Props {
     userId: string | null;
     initialJoined: boolean;
     initialCount: number;
+    recentParticipants: { avatar: string | null; display_name: string }[];
 }
 
 export default function ParticipateButton({
-    challengeId, challengeStatus, userId, initialJoined, initialCount,
+    challengeId, challengeStatus, userId, initialJoined, initialCount, recentParticipants,
 }: Props) {
     const router = useRouter();
     const [joined, setJoined] = useState(initialJoined);
@@ -79,9 +81,14 @@ export default function ParticipateButton({
                 >
                     Submit Solution <ArrowRight size={15} />
                 </Link>
-                <p className="text-center text-xs text-slate-500">
-                    {count} {count === 1 ? 'engineer' : 'engineers'} participating
-                </p>
+                <div className="flex flex-col items-center gap-2 mt-2 pt-2 border-t border-white/[0.05]">
+                    {recentParticipants.length > 0 && (
+                        <AvatarStack users={recentParticipants} totalCount={count} size="sm" />
+                    )}
+                    <p className="text-center text-xs text-slate-500">
+                        {count} {count === 1 ? 'engineer is' : 'engineers are'} participating
+                    </p>
+                </div>
             </div>
         );
     }
@@ -98,9 +105,14 @@ export default function ParticipateButton({
                     : <><Users size={16} /> Join Challenge</>
                 }
             </button>
-            <p className="text-center text-xs text-slate-500">
-                {count} {count === 1 ? 'engineer has' : 'engineers have'} joined · submit after joining
-            </p>
+            <div className="flex flex-col items-center gap-2 mt-2 pt-2 border-t border-white/[0.05]">
+                {recentParticipants.length > 0 && (
+                    <AvatarStack users={recentParticipants} totalCount={count} size="sm" />
+                )}
+                <p className="text-center text-xs text-slate-500">
+                    {count} {count === 1 ? 'engineer has' : 'engineers have'} joined · submit after joining
+                </p>
+            </div>
         </div>
     );
 }

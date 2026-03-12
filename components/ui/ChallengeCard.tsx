@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Challenge } from '@/lib/types';
 import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon, getRoleShort } from '@/lib/utils';
 import { Zap, Users, Clock, ArrowRight, Code2 } from 'lucide-react';
@@ -20,7 +20,16 @@ const modeColors = {
 
 export default function ChallengeCard({ challenge, className }: ChallengeCardProps) {
     const [showParticipants, setShowParticipants] = useState(false);
-    const timeLeft = formatTimeUntil(challenge.deadline);
+    const [timeLeft, setTimeLeft] = useState(() => formatTimeUntil(challenge.deadline));
+
+    useEffect(() => {
+        if (!challenge.deadline) return;
+        const timer = setInterval(() => {
+            setTimeLeft(formatTimeUntil(challenge.deadline));
+        }, 60000); // update every minute
+        return () => clearInterval(timer);
+    }, [challenge.deadline]);
+
     const isUrgent = challenge.deadline
         ? new Date(challenge.deadline).getTime() - Date.now() < 86400000 * 2
         : false;

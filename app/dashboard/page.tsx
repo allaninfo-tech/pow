@@ -63,6 +63,17 @@ export default async function DashboardPage() {
         .order('submitted_at', { ascending: false })
         .limit(5);
 
+    // Fetch challenges the user has joined (Active only)
+    const { data: myParticipations } = await supabase
+        .from('participations')
+        .select('challenges(*)')
+        .eq('user_id', currentUser.id)
+        .order('joined_at', { ascending: false });
+    
+    const rawMyChallenges = (myParticipations || [])
+        .map(p => p.challenges as any)
+        .filter(c => c && c.status === 'Active');
+
     // Compute avatar initials from display_name or email fallback
     const displayName = currentUser.display_name || user.email?.split('@')[0] || 'User';
     const nameParts = displayName.trim().split(' ');
@@ -92,6 +103,11 @@ export default async function DashboardPage() {
         submissionsCount: c.submissions_count,
     }));
 
+    const formattedMyChallenges = rawMyChallenges.map(c => ({
+        ...c,
+        submissionsCount: c.submissions_count,
+    }));
+
     const formattedSubmissions = (recentSubmissions || []).map(s => ({
         ...s,
         challengeTitle: s.challenge_title,
@@ -103,6 +119,7 @@ export default async function DashboardPage() {
         <DashboardClient
             currentUser={formattedUser}
             activeChallenges={formattedChallenges}
+            myChallenges={formattedMyChallenges}
             recentSubmissions={formattedSubmissions}
         />
     );
