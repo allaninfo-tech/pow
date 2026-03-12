@@ -4,6 +4,7 @@ import AppShell from '@/components/layout/AppShell';
 import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon } from '@/lib/utils';
 import { Zap, Users, Clock, CheckCircle2, AlertCircle, ArrowRight, Code2, Shield, Gauge, BookOpen } from 'lucide-react';
 import Link from 'next/link';
+import ParticipateButton from '@/components/ui/ParticipateButton';
 
 export default async function ChallengeDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -16,6 +17,21 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
         .single();
 
     if (!challenge) notFound();
+
+    // Get current user + check if they've already joined
+    const { data: { user } } = await supabase.auth.getUser();
+    const userId = user?.id ?? null;
+
+    let alreadyJoined = false;
+    if (userId && challenge.status === 'Active') {
+        const { data: participation } = await supabase
+            .from('participations')
+            .select('id')
+            .eq('challenge_id', challenge.id)
+            .eq('user_id', userId)
+            .maybeSingle();
+        alreadyJoined = !!participation;
+    }
 
     // Map snake_case DB fields to camelCase for template
     const c = {
@@ -176,7 +192,7 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
 
                     {/* Right sidebar */}
                     <div className="space-y-4">
-                        {/* Submit CTA */}
+                        {/* Participate / Submit CTA */}
                         {c.status === 'Completed' ? (
                             <div className="glass-card p-5 border-emerald-500/20 bg-emerald-500/[0.04]">
                                 <h3 className="text-sm font-semibold text-slate-300 mb-3">Challenge Completed</h3>
@@ -185,13 +201,22 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                                     See Submissions <ArrowRight size={16} />
                                 </Link>
                             </div>
+                        ) : c.status === 'Upcoming' ? (
+                            <div className="glass-card p-5 border-amber-500/20 bg-amber-500/[0.04]">
+                                <h3 className="text-sm font-semibold text-amber-300 mb-2">⏳ Launching Soon</h3>
+                                <p className="text-xs text-slate-400">This challenge isn't live yet. Once the admin sets it to <span className="font-semibold text-amber-300">Active</span>, you'll be able to join and participate.</p>
+                            </div>
                         ) : (
                             <div className="glass-card p-5 border-indigo-500/20 bg-indigo-500/[0.04]">
-                                <h3 className="text-sm font-semibold text-slate-300 mb-3">Ready to Submit?</h3>
-                                <p className="text-xs text-slate-500 mb-4">Deploy your solution and submit your GitHub repo + live URL for AI evaluation.</p>
-                                <Link href={`/submit/${c.id}`} className="btn-primary w-full flex items-center justify-center gap-2 py-3 text-sm">
-                                    Submit Solution <ArrowRight size={16} />
-                                </Link>
+                                <h3 className="text-sm font-semibold text-slate-300 mb-1">Join the Challenge</h3>
+                                <p className="text-xs text-slate-500 mb-4">Join to mark your participation. Once joined, submit your solution before the deadline.</p>
+                                <ParticipateButton
+                                    challengeId={c.id}
+                                    challengeStatus={c.status}
+                                    userId={userId}
+                                    initialJoined={alreadyJoined}
+                                    initialCount={c.participantsCount}
+                                />
                             </div>
                         )}
 
