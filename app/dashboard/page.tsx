@@ -11,16 +11,44 @@ export default async function DashboardPage() {
         redirect('/auth');
     }
 
-    const { data: currentUser } = await supabase
+    // Fetch user profile
+    let { data: profileData } = await supabase
         .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
 
-    if (!currentUser) {
-        // User authenticated but no profile row yet — redirect to auth
-        redirect('/auth');
+    // If no profile row exists (e.g. email confirmed after signup, but upsert was blocked by RLS),
+    // auto-create one from auth.user metadata so the user can proceed to the dashboard.
+    if (!profileData) {
+        const displayName = (user.user_metadata?.display_name as string | undefined)
+            || user.email?.split('@')[0]
+            || 'User';
+        const baseUsername = (user.email?.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_]/g, '');
+        const username = baseUsername + Math.floor(Math.random() * 1000);
+
+        await (supabase as any).from('users').upsert({
+            id: user.id,
+            email: user.email ?? '',
+            username,
+            display_name: displayName,
+            role: (user.user_metadata?.role as string | undefined) || 'Full Stack Engineer',
+            league: 'Newbie',
+            joined_at: new Date().toISOString(),
+        }, { onConflict: 'id' });
+
+        // Re-fetch after creating
+        const { data: refreshed } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', user.id)
+            .single();
+
+        if (!refreshed) redirect('/auth');
+        profileData = refreshed;
     }
+
+    const currentUser = profileData!;
 
     const { data: activeChallenges } = await supabase
         .from('challenges')

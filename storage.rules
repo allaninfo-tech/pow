@@ -1,0 +1,43 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Avatars ─────────────────────────────────────────────────────────────
+    // Anyone can read avatars (they're shown publicly in profiles/showcase)
+    // Only the owner (matching userId folder) can write their own avatar
+    match /avatars/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 3 * 1024 * 1024   // max 3 MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Submission screenshots ───────────────────────────────────────────────
+    // Anyone can read (shown in showcase)
+    // Authenticated users can upload their own (userId folder)
+    match /submissions/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 10 * 1024 * 1024  // max 10 MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Challenge banners (admin uploads) ──────────────────────────────────
+    match /challenges/{challengeId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024   // max 5 MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // ── Squad logos and banners ─────────────────────────────────────────────
+    match /squads/{squadId}/{fileName} {
+      allow read: if true;
+      allow write: if request.resource.size < 5 * 1024 * 1024   // max 5 MB
+                   && request.resource.contentType.matches('image/.*');
+    }
+
+    // Block everything else
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

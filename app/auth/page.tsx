@@ -47,6 +47,20 @@ export default function AuthPage() {
 
     const supabase = createClient();
 
+    const handleOAuth = async (provider: 'google' | 'github') => {
+        setLoading(true);
+        setError(null);
+        await supabase.auth.signInWithOAuth({
+            provider,
+            options: {
+                redirectTo: `${window.location.origin}/auth/callback`,
+            },
+        });
+        // Page will redirect — no need to setLoading(false)
+    };
+
+    // supabase client created inside handleOAuth to avoid stale closure issues
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
@@ -219,10 +233,32 @@ export default function AuthPage() {
                             <h1 className="text-2xl font-bold text-white mb-1">Welcome back</h1>
                             <p className="text-sm text-slate-400 mb-8">Sign in to continue building your verified portfolio.</p>
 
-                            <button type="button" className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
-                                <Github size={18} />
-                                Continue with GitHub
-                            </button>
+                            {/* OAuth buttons */}
+                            <div className="space-y-2.5 mb-6">
+                                <button
+                                    type="button"
+                                    onClick={() => handleOAuth('google')}
+                                    disabled={loading}
+                                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all disabled:opacity-50"
+                                >
+                                    <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                                        <path d="M43.6 20.5H24v7h11.3c-1.6 5.5-6.4 9-11.3 9a12 12 0 1 1 0-24c3 0 5.7 1.1 7.8 2.9l5.3-5.3A20 20 0 1 0 24 44c11 0 20-9 20-20 0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
+                                        <path d="m6.3 14.7 6.1 4.5A12 12 0 0 1 24 12c3 0 5.7 1.1 7.8 2.9l5.3-5.3A20 20 0 0 0 6.3 14.7z" fill="#FF3D00"/>
+                                        <path d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.3A12 12 0 0 1 12.3 26L6.3 30.6C9.5 37.6 16.3 44 24 44z" fill="#4CAF50"/>
+                                        <path d="M43.6 20.5H24v7h11.3c-.7 2.5-2.4 4.6-4.7 6l6.2 5.3C40.5 35.7 44 30.3 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
+                                    </svg>
+                                    Continue with Google
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleOAuth('github')}
+                                    disabled={loading}
+                                    className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all disabled:opacity-50"
+                                >
+                                    <Github size={18} />
+                                    Continue with GitHub
+                                </button>
+                            </div>
 
                             <div className="relative mb-6">
                                 <div className="divider" />
@@ -289,10 +325,32 @@ export default function AuthPage() {
                                     <h1 className="text-2xl font-bold text-white mb-1">Create your account</h1>
                                     <p className="text-sm text-slate-400 mb-8">Join the global engineering competition platform.</p>
 
-                                    <button type="button" className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all mb-6">
-                                        <Github size={18} />
-                                        Register with GitHub
-                                    </button>
+                                    {/* OAuth buttons */}
+                                    <div className="space-y-2.5 mb-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOAuth('google')}
+                                            disabled={loading}
+                                            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all disabled:opacity-50"
+                                        >
+                                            <svg width="18" height="18" viewBox="0 0 48 48" fill="none">
+                                                <path d="M43.6 20.5H24v7h11.3c-1.6 5.5-6.4 9-11.3 9a12 12 0 1 1 0-24c3 0 5.7 1.1 7.8 2.9l5.3-5.3A20 20 0 1 0 24 44c11 0 20-9 20-20 0-1.2-.1-2.5-.4-3.5z" fill="#FFC107"/>
+                                                <path d="m6.3 14.7 6.1 4.5A12 12 0 0 1 24 12c3 0 5.7 1.1 7.8 2.9l5.3-5.3A20 20 0 0 0 6.3 14.7z" fill="#FF3D00"/>
+                                                <path d="M24 44c5.2 0 9.9-1.9 13.5-5l-6.2-5.3A12 12 0 0 1 12.3 26L6.3 30.6C9.5 37.6 16.3 44 24 44z" fill="#4CAF50"/>
+                                                <path d="M43.6 20.5H24v7h11.3c-.7 2.5-2.4 4.6-4.7 6l6.2 5.3C40.5 35.7 44 30.3 44 24c0-1.2-.1-2.5-.4-3.5z" fill="#1976D2"/>
+                                            </svg>
+                                            Register with Google
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleOAuth('github')}
+                                            disabled={loading}
+                                            className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl border border-white/[0.08] bg-white/[0.04] text-sm font-medium text-slate-300 hover:bg-white/[0.07] transition-all disabled:opacity-50"
+                                        >
+                                            <Github size={18} />
+                                            Register with GitHub
+                                        </button>
+                                    </div>
 
                                     <div className="relative mb-6">
                                         <div className="divider" />

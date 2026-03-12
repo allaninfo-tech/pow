@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import Avatar from '@/components/ui/Avatar';
 import { createClient } from '@/lib/supabase/client';
 import { User, Github, Bell, Palette, Shield, Save, Check, ExternalLink, Moon, Sun, Monitor, Download, Trash2, Lock } from 'lucide-react';
+import AvatarUploader from '@/components/ui/AvatarUploader';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 
@@ -34,6 +35,7 @@ export default function SettingsPage() {
     const [saved, setSaved] = useState(false);
     const [userId, setUserId] = useState<string | null>(null);
     const [avatarInitials, setAvatarInitials] = useState<string>('?');
+    const [avatarPhotoUrl, setAvatarPhotoUrl] = useState<string | undefined>(undefined);
     const [githubUsername, setGithubUsername] = useState<string | null>(null);
     const [githubConnected, setGithubConnected] = useState(false);
 
@@ -74,7 +76,13 @@ export default function SettingsPage() {
                 const initials = nameParts.length >= 2
                     ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]).toUpperCase()
                     : displayName.slice(0, 2).toUpperCase();
-                setAvatarInitials(data.avatar || initials);
+                // If avatar looks like a URL (Firebase photo) store it separately
+                if (data.avatar && (data.avatar.startsWith('http://') || data.avatar.startsWith('https://'))) {
+                    setAvatarPhotoUrl(data.avatar);
+                    setAvatarInitials(initials);
+                } else {
+                    setAvatarInitials(data.avatar || initials);
+                }
                 setGithubUsername(data.github_username);
                 setGithubConnected(data.github_connected ?? false);
                 setProfile({
@@ -217,36 +225,22 @@ export default function SettingsPage() {
                                         <p className="text-xs text-slate-500">This information appears on your public profile.</p>
                                     </div>
 
-                                    <div className="flex items-center gap-4">
-                                        <Avatar initials={avatarInitials} size="xl" />
-                                        <div>
-                                            <input
-                                                type="file"
-                                                id="avatar-upload"
-                                                className="hidden"
-                                                accept="image/*"
-                                                onChange={async (e) => {
-                                                    const file = e.target.files?.[0];
-                                                    if (!file) return;
-                                                    const supabase = createClient();
-                                                    const { data: { user } } = await supabase.auth.getUser();
-                                                    if (!user) return;
-                                                    const fileExt = file.name.split('.').pop();
-                                                    const filePath = `${user.id}-${Math.random()}.${fileExt}`;
-                                                    const { error: uploadError } = await supabase.storage.from('avatars').upload(filePath, file);
-                                                    if (!uploadError) {
-                                                        const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
-                                                        await supabase.from('users').update({ avatar: publicUrl }).eq('id', user.id);
-                                                        setAvatarInitials(publicUrl);
-                                                    }
-                                                }}
-                                            />
-                                            <label htmlFor="avatar-upload" className="btn-ghost text-xs px-4 py-1.5 cursor-pointer inline-block">
-                                                Change Avatar
-                                            </label>
-                                            <p className="text-[10px] text-slate-600 mt-1">PNG, JPG up to 2MB</p>
-                                        </div>
-                                    </div>
+                                    {userId && (
+                                        <AvatarUploader
+                                            userId={userId}
+                                            currentInitials={avatarInitials}
+                                            currentPhotoUrl={avatarPhotoUrl}
+                                            onUploadComplete={async (url) => {
+                                                setAvatarPhotoUrl(url);
+                                                // Save the Firebase URL to Supabase users.avatar
+                                                const supabase = createClient();
+                                                await supabase
+                                                    .from('users')
+                                                    .update({ avatar: url })
+                                                    .eq('id', userId);
+                                            }}
+                                        />
+                                    )}
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                         <div>

@@ -147,7 +147,7 @@ export default function DashboardClient({
                         <div
                             key={label}
                             className="stat-card animate-slide-up"
-                            style={{ animationDelay: `${idx * 100}ms`, animationFillMode: 'backwards' }}
+                            style={{ animationDelay: `${idx * 100}ms` }}
                         >
                             <div className="flex items-center justify-between mb-2">
                                 <span className="text-xs text-slate-500 font-medium">{label}</span>
