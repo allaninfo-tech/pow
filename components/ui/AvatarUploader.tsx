@@ -2,13 +2,13 @@
 
 import { useRef, useState } from 'react';
 import { cn } from '@/lib/utils';
-import { uploadAvatar } from '@/lib/firebase-storage';
+import { createClient } from '@/lib/supabase/client';
 import { Camera, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface AvatarUploaderProps {
     userId: string;
-    currentInitials: string;    // shown while no photo uploaded yet
-    currentPhotoUrl?: string;   // shown if user already has a Firebase photo
+    currentInitials: string;
+    currentPhotoUrl?: string;
     onUploadComplete: (url: string) => void;
 }
 
@@ -24,32 +24,41 @@ export default function AvatarUploader({
         const file = e.target.files?.[0];
         if (!file) return;
 
-        // Validate type and size (max 3 MB)
-        if (!file.type.startsWith('image/')) {
-            setError('Please select an image file.');
-            return;
-        }
-        if (file.size > 3 * 1024 * 1024) {
-            setError('Image must be under 3 MB.');
-            return;
-        }
+        if (!file.type.startsWith('image/')) { setError('Please select an image file.'); return; }
+        if (file.size > 3 * 1024 * 1024) { setError('Image must be under 3 MB.'); return; }
 
         setError(null);
         setSuccess(false);
         setProgress(0);
 
         try {
-            const url = await uploadAvatar(file, userId, (pct) => setProgress(pct));
-            onUploadComplete(url);
+            const supabase = createClient();
+            const ext = file.name.split('.').pop() || 'jpg';
+            const path = `${userId}/profile_${Date.now()}.${ext}`;
+
+            // Simulate progress (Supabase Storage doesn't stream progress)
+            const ticker = setInterval(() => setProgress(p => Math.min((p ?? 0) + 20, 85)), 200);
+
+            const { error: uploadError } = await supabase.storage
+                .from('avatars')
+                .upload(path, file, { upsert: true, contentType: file.type });
+
+            clearInterval(ticker);
+
+            if (uploadError) throw uploadError;
+
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(path);
+
+            setProgress(100);
+            setTimeout(() => setProgress(null), 400);
+            onUploadComplete(publicUrl);
             setSuccess(true);
-            setProgress(null);
         } catch (err: any) {
             console.error('Avatar upload failed:', err);
-            setError('Upload failed. Please try again.');
+            setError(err.message || 'Upload failed. Please try again.');
             setProgress(null);
         }
 
-        // Reset input so same file can be re-selected
         if (inputRef.current) inputRef.current.value = '';
     };
 
@@ -62,18 +71,11 @@ export default function AvatarUploader({
                 <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/[0.08] bg-gradient-to-br from-indigo-500/30 to-cyan-500/20 flex items-center justify-center">
                     {currentPhotoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                            src={currentPhotoUrl}
-                            alt="Avatar"
-                            className="w-full h-full object-cover"
-                        />
+                        <img src={currentPhotoUrl} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
-                        <span className="text-2xl font-black text-white/80">
-                            {currentInitials}
-                        </span>
+                        <span className="text-2xl font-black text-white/80">{currentInitials}</span>
                     )}
 
-                    {/* Hover overlay */}
                     {!uploading && (
                         <button
                             onClick={() => inputRef.current?.click()}
@@ -84,7 +86,6 @@ export default function AvatarUploader({
                         </button>
                     )}
 
-                    {/* Upload progress overlay */}
                     {uploading && (
                         <div className="absolute inset-0 bg-black/70 flex flex-col items-center justify-center rounded-2xl gap-1">
                             <Loader2 size={20} className="text-indigo-400 animate-spin" />
@@ -93,14 +94,10 @@ export default function AvatarUploader({
                     )}
                 </div>
 
-                {/* Progress ring */}
                 {uploading && (
                     <svg className="absolute -inset-1 w-[calc(100%+8px)] h-[calc(100%+8px)] -rotate-90" viewBox="0 0 88 88">
                         <circle cx="44" cy="44" r="42" fill="none" stroke="rgba(99,102,241,0.15)" strokeWidth="3" />
-                        <circle
-                            cx="44" cy="44" r="42" fill="none"
-                            stroke="#6366f1" strokeWidth="3"
-                            strokeLinecap="round"
+                        <circle cx="44" cy="44" r="42" fill="none" stroke="#6366f1" strokeWidth="3" strokeLinecap="round"
                             strokeDasharray={`${2 * Math.PI * 42}`}
                             strokeDashoffset={`${2 * Math.PI * 42 * (1 - (progress ?? 0) / 100)}`}
                             className="transition-all duration-300"
@@ -109,12 +106,10 @@ export default function AvatarUploader({
                 )}
             </div>
 
-            {/* Right side: info + button */}
+            {/* Right side */}
             <div className="flex-1">
                 <p className="text-sm font-semibold text-slate-200 mb-1">Profile Picture</p>
-                <p className="text-xs text-slate-500 mb-3">
-                    JPG, PNG or WebP · Max 3 MB · Stored securely on Firebase
-                </p>
+                <p className="text-xs text-slate-500 mb-3">JPG, PNG or WebP · Max 3 MB</p>
 
                 <div className="flex items-center gap-3">
                     <button
@@ -145,14 +140,7 @@ export default function AvatarUploader({
                 )}
             </div>
 
-            {/* Hidden file input */}
-            <input
-                ref={inputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleFileChange}
-            />
+            <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={handleFileChange} />
         </div>
     );
 }

@@ -7,8 +7,9 @@ import { createClient } from '@/lib/supabase/client';
 import {
     ShieldAlert, Users, Code2, Activity, Shield, X, Save, Plus, Edit, Trash2,
     BarChart3, Megaphone, Eye, EyeOff, Ban, Star, Globe, Github,
-    CheckCircle, XCircle, Clock, Trophy
+    CheckCircle, XCircle, Clock, Trophy, Sparkles, Loader2
 } from 'lucide-react';
+import { generateChallenge } from '@/lib/gemini';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Stats = {
@@ -133,6 +134,26 @@ function ChallengesTab({ challenges: init, adminId }: { challenges: Challenge[];
     const [challenges, setChallenges] = useState<Challenge[]>(init);
     const [editing, setEditing] = useState(false);
     const [current, setCurrent] = useState<Partial<Challenge>>({});
+    const [aiOpen, setAiOpen] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [aiLoading, setAiLoading] = useState(false);
+    const [aiError, setAiError] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!aiPrompt.trim()) return;
+        setAiLoading(true);
+        setAiError(null);
+        try {
+            const generated = await generateChallenge(aiPrompt);
+            setCurrent(generated);
+            setAiOpen(false);
+            setAiPrompt('');
+        } catch (err: any) {
+            setAiError(err.message || 'AI generation failed. Check Firebase AI is enabled.');
+        } finally {
+            setAiLoading(false);
+        }
+    };
 
     const handleArray = (field: string, val: string, idx: number) => {
         const arr = [...(current[field] as string[] || [])]; arr[idx] = val;
@@ -223,9 +244,66 @@ function ChallengesTab({ challenges: init, adminId }: { challenges: Challenge[];
             {editing && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm overflow-y-auto">
                     <div className="glass-card w-full max-w-4xl max-h-[90vh] overflow-y-auto my-auto border-indigo-500/20 flex flex-col">
-                        <div className="sticky top-0 z-10 p-5 border-b border-white/[0.06] flex items-center justify-between bg-slate-950/90 backdrop-blur-md">
-                            <h2 className="text-lg font-bold text-white flex items-center gap-2"><Edit size={18} className="text-indigo-400" />{current.id ? 'Edit' : 'Create'} Challenge</h2>
-                            <button onClick={() => setEditing(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400"><X size={18} /></button>
+                        <div className="sticky top-0 z-10 border-b border-white/[0.06] bg-slate-950/90 backdrop-blur-md">
+                            {/* Modal header */}
+                            <div className="p-5 flex items-center justify-between">
+                                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                                    <Edit size={18} className="text-indigo-400" />
+                                    {current.id ? 'Edit' : 'Create'} Challenge
+                                </h2>
+                                <div className="flex items-center gap-2">
+                                    {/* AI generate toggle */}
+                                    <button
+                                        onClick={() => { setAiOpen(o => !o); setAiError(null); }}
+                                        className={cn(
+                                            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all',
+                                            aiOpen
+                                                ? 'bg-violet-500/20 border-violet-500/40 text-violet-300'
+                                                : 'bg-violet-500/10 border-violet-500/20 text-violet-400 hover:bg-violet-500/20'
+                                        )}
+                                    >
+                                        <Sparkles size={13} />
+                                        Generate with AI
+                                    </button>
+                                    <button onClick={() => setEditing(false)} className="p-1.5 hover:bg-white/10 rounded-lg text-slate-400">
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* AI prompt bar */}
+                            {aiOpen && (
+                                <div className="px-5 pb-4 border-t border-violet-500/20 pt-4 bg-violet-500/[0.04]">
+                                    <p className="text-xs text-violet-400 mb-2 font-medium">Describe the challenge and AI will fill all fields automatically.</p>
+                                    <div className="flex gap-2">
+                                        <input
+                                            value={aiPrompt}
+                                            onChange={e => setAiPrompt(e.target.value)}
+                                            onKeyDown={e => e.key === 'Enter' && !aiLoading && handleGenerate()}
+                                            placeholder='e.g. "A real-time chat app for Senior Full Stack engineers"'
+                                            className="input-field flex-1 text-sm py-2"
+                                            disabled={aiLoading}
+                                            autoFocus
+                                        />
+                                        <button
+                                            onClick={handleGenerate}
+                                            disabled={aiLoading || !aiPrompt.trim()}
+                                            className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors whitespace-nowrap"
+                                        >
+                                            {aiLoading
+                                                ? <><Loader2 size={14} className="animate-spin" /> Generating…</>
+                                                : <><Sparkles size={14} /> Generate</>
+                                            }
+                                        </button>
+                                    </div>
+                                    {aiError && <p className="text-xs text-rose-400 mt-2">{aiError}</p>}
+                                    {aiLoading && (
+                                        <p className="text-xs text-violet-400/70 mt-2 animate-pulse">
+                                            ✨ Gemini is designing your challenge — this takes a few seconds…
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                         <div className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
                             <div className="space-y-4">
