@@ -1,20 +1,7 @@
-// Firebase Gemini AI helper — used ONLY for server-side admin features
-// like AI-powered challenge generation. Never used on the client auth flow.
-// Requires Firebase Blaze plan (free usage: 1,500 requests/day for Gemini Flash).
-
-import { getAI, getGenerativeModel, GoogleAIBackend } from 'firebase/ai';
-import { getApp, getApps, initializeApp } from 'firebase/app';
-
-const firebaseConfig = {
-    apiKey:            process.env.NEXT_PUBLIC_FIREBASE_API_KEY!,
-    authDomain:        process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN!,
-    projectId:         process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID!,
-    storageBucket:     process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET!,
-    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID!,
-    appId:             process.env.NEXT_PUBLIC_FIREBASE_APP_ID!,
-};
-
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+// Google Gemini AI helper — uses Google AI Studio REST API directly.
+// Get a FREE API key at: https://aistudio.google.com/app/apikey
+// Free quota: 1,500 requests/day, 1M tokens/minute — no billing required.
+// Add to .env.local: NEXT_PUBLIC_GEMINI_API_KEY=your_key_here
 
 export interface GeneratedChallenge {
     title: string;
@@ -31,49 +18,69 @@ export interface GeneratedChallenge {
     evaluation_criteria: { name: string; weight: number; description: string }[];
 }
 
-const SYSTEM_PROMPT = `You are an expert software engineering challenge designer for a platform called ProofStack.
-Generate a realistic, detailed, professional coding challenge based on the user's prompt.
-Return ONLY valid JSON (no markdown, no explanation) matching this exact schema:
+const SYSTEM_PROMPT = `You are an expert software engineering challenge designer for ProofStack, a competitive coding platform.
+Generate a realistic, detailed, and professional coding challenge based on the user's prompt.
+Return ONLY valid JSON with NO markdown fencing, NO explanation — just the raw JSON object matching this schema:
 {
-  "title": "string (concise challenge name)",
-  "short_description": "string (1-2 sentences)",
-  "client_scenario": "string (2-3 paragraph client brief explaining the business context and why this needs to be built)",
-  "tier": number (1=Newbie, 2=Junior, 3=Mid, 4=Senior, 5=Elite),
-  "mode": "Solo" | "Squad" | "Both",
-  "functional_requirements": ["string", ...] (5-8 specific must-have features),
-  "technical_constraints": ["string", ...] (4-6 technology rules or restrictions),
-  "performance_constraints": ["string", ...] (3-5 performance/reliability requirements),
-  "allowed_stack": ["string", ...] (list of allowed technologies/frameworks),
-  "required_roles": ["string", ...] (e.g. "Frontend Specialist", "Backend Engineer"),
-  "tags": ["string", ...] (4-6 topic tags),
+  "title": "concise challenge name",
+  "short_description": "1-2 sentence summary",
+  "client_scenario": "2-3 paragraph client brief explaining business context",
+  "tier": 1-5 (1=Newbie 2=Junior 3=Mid 4=Senior 5=Elite),
+  "mode": "Solo" or "Squad" or "Both",
+  "functional_requirements": ["5-8 specific must-have features"],
+  "technical_constraints": ["4-6 technology rules or restrictions"],
+  "performance_constraints": ["3-5 performance/reliability requirements"],
+  "allowed_stack": ["list of allowed tech"],
+  "required_roles": ["e.g. Frontend Specialist", "Backend Engineer"],
+  "tags": ["4-6 topic tags"],
   "evaluation_criteria": [
-    { "name": "string", "weight": number, "description": "string" },
-    ... (4-6 criteria, weights must sum to 100)
+    {"name": "criterion name", "weight": number, "description": "what is evaluated"},
+    ...4-6 items, weights sum to 100
   ]
 }`;
 
 /**
  * Generate a full challenge object from a plain-English admin prompt.
- * e.g. "A real-time collaborative code editor challenge for senior engineers"
+ * Requires NEXT_PUBLIC_GEMINI_API_KEY in .env.local
  */
 export async function generateChallenge(prompt: string): Promise<GeneratedChallenge> {
-    const ai = getAI(app, { backend: new GoogleAIBackend() });
-    const model = getGenerativeModel(ai, { model: 'gemini-2.0-flash' });
+    const apiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+    if (!apiKey) {
+        throw new Error('NEXT_PUBLIC_GEMINI_API_KEY is not set. Get a free key at https://aistudio.google.com/app/apikey');
+    }
 
-    const result = await model.generateContent([
-        { text: SYSTEM_PROMPT },
-        { text: `Create a challenge for: ${prompt}` },
-    ]);
+    const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+        {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                system_instruction: { parts: [{ text: SYSTEM_PROMPT }] },
+                contents: [{ parts: [{ text: `Create a challenge for: ${prompt}` }] }],
+                generationConfig: {
+                    temperature: 0.8,
+                    maxOutputTokens: 2048,
+                    responseMimeType: 'application/json',
+                },
+            }),
+        }
+    );
 
-    const raw = result.response.text().trim()
+    if (!response.ok) {
+        const err = await response.text();
+        throw new Error(`Gemini API error: ${err}`);
+    }
+
+    const json = await response.json();
+    const raw = json.candidates?.[0]?.content?.parts?.[0]?.text ?? '';
+
+    // Strip accidental markdown fences just in case
+    const cleaned = raw.trim()
         .replace(/^```json\s*/i, '')
         .replace(/^```\s*/i, '')
         .replace(/```\s*$/i, '');
 
-    const parsed: GeneratedChallenge = JSON.parse(raw);
-
-    // Sanity-clamp tier to 1–5
+    const parsed: GeneratedChallenge = JSON.parse(cleaned);
     parsed.tier = Math.max(1, Math.min(5, parsed.tier));
-
     return parsed;
 }
