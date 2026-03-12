@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Challenge } from '@/lib/types';
 import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon, getRoleShort } from '@/lib/utils';
-import { Zap, Users, Clock, ArrowRight, Code2 } from 'lucide-react';
+import { Zap, Users, Clock, ArrowRight, Code2, Play, CheckCircle } from 'lucide-react';
 import Link from 'next/link';
 import ParticipantsModal from './ParticipantsModal';
 
@@ -25,11 +25,15 @@ export default function ChallengeCard({ challenge, className }: ChallengeCardPro
         ? new Date(challenge.deadline).getTime() - Date.now() < 86400000 * 2
         : false;
 
+    const isActive = challenge.status === 'Active';
+    const isUpcoming = challenge.status === 'Upcoming';
+    const isCompleted = challenge.status === 'Completed';
+
     return (
         <>
-            <div className={cn('glass-card p-5 group relative', className)}>
-                {/* The card body links to detail — stop propagation on participants click */}
-                <Link href={`/challenges/${challenge.id}`} className="block">
+            <div className={cn('glass-card p-5 group relative flex flex-col', className)}>
+                {/* Card body links to detail */}
+                <Link href={`/challenges/${challenge.id}`} className="block flex-1">
                     {/* Header */}
                     <div className="flex items-start justify-between gap-3 mb-3">
                         <div className="flex-1 min-w-0">
@@ -40,9 +44,14 @@ export default function ChallengeCard({ challenge, className }: ChallengeCardPro
                                 <span className={cn('badge border', modeColors[challenge.mode])}>
                                     {challenge.mode === 'Both' ? 'Solo + Squad' : challenge.mode}
                                 </span>
-                                {challenge.status === 'Upcoming' && (
+                                {isUpcoming && (
                                     <span className="badge bg-amber-500/10 border border-amber-500/20 text-amber-300">
                                         Upcoming
+                                    </span>
+                                )}
+                                {isCompleted && (
+                                    <span className="badge bg-slate-500/10 border border-slate-500/20 text-slate-400">
+                                        Ended
                                     </span>
                                 )}
                             </div>
@@ -70,41 +79,80 @@ export default function ChallengeCard({ challenge, className }: ChallengeCardPro
                         ))}
                     </div>
 
-                    {/* Hover action */}
-                    <div className={cn(
-                        "flex items-center gap-1 text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity",
-                        challenge.status === 'Completed' ? "text-emerald-400" : "text-indigo-400"
-                    )}>
-                        {challenge.status === 'Completed' ? 'See Submissions' : 'View Challenge'} <ArrowRight size={12} />
-                    </div>
+                    {/* Upcoming tip banner */}
+                    {isUpcoming && (
+                        <div className="mb-4 px-3 py-2 rounded-xl bg-amber-500/[0.07] border border-amber-500/20 flex items-center gap-2">
+                            <Clock size={13} className="text-amber-400 flex-shrink-0" />
+                            <p className="text-xs text-amber-300/90 leading-relaxed">
+                                This challenge is launching soon. Check back when it goes <span className="font-semibold text-amber-300">Active</span> to participate.
+                            </p>
+                        </div>
+                    )}
                 </Link>
 
-                {/* Footer stats — separate from Link to allow participants click */}
-                <div className="flex items-center justify-between pt-3 mt-3 border-t border-white/[0.05]">
-                    <div className="flex items-center gap-4">
-                        {/* Participants — clickable */}
-                        <button
-                            onClick={() => setShowParticipants(true)}
-                            className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-indigo-400 transition-colors group/participants cursor-pointer"
-                            title="View participants"
-                        >
-                            <Users size={12} className="group-hover/participants:text-indigo-400 transition-colors" />
-                            <span className="group-hover/participants:text-indigo-400 transition-colors underline-offset-2 hover:underline">
-                                {challenge.participantsCount ?? 0} participants
-                            </span>
-                        </button>
-                        <div className="flex items-center gap-1.5 text-xs text-slate-500">
-                            <Code2 size={12} />
-                            <span>{challenge.submissionsCount ?? 0} submissions</span>
+                {/* Footer stats + CTA */}
+                <div className="mt-3 pt-3 border-t border-white/[0.05]">
+                    <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-4">
+                            {/* Participants — clickable */}
+                            <button
+                                onClick={() => setShowParticipants(true)}
+                                className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-indigo-400 transition-colors cursor-pointer"
+                                title="View participants"
+                            >
+                                <Users size={12} />
+                                <span className="underline-offset-2 hover:underline">
+                                    {challenge.participantsCount ?? 0} participants
+                                </span>
+                            </button>
+                            <div className="flex items-center gap-1.5 text-xs text-slate-500">
+                                <Code2 size={12} />
+                                <span>{challenge.submissionsCount ?? 0} submissions</span>
+                            </div>
+                        </div>
+                        <div className={cn(
+                            'flex items-center gap-1.5 text-xs font-semibold',
+                            isUrgent && isActive ? 'text-rose-400' : 'text-slate-400'
+                        )}>
+                            <Clock size={12} />
+                            {isUpcoming ? 'Starting soon' : (timeLeft || 'Ended')}
                         </div>
                     </div>
-                    <div className={cn(
-                        'flex items-center gap-1.5 text-xs font-semibold',
-                        isUrgent && challenge.status === 'Active' ? 'text-rose-400' : 'text-slate-400'
-                    )}>
-                        <Clock size={12} />
-                        {challenge.status === 'Upcoming' ? 'Starting soon' : (timeLeft || 'Ended')}
-                    </div>
+
+                    {/* Participate / View CTA button */}
+                    {isActive && (
+                        <Link
+                            href={`/submit/${challenge.id}`}
+                            className={cn(
+                                'w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all',
+                                'bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-cyan-500',
+                                'text-white shadow-[0_0_15px_rgba(99,102,241,0.25)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]'
+                            )}
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <Play size={14} /> Participate Now
+                        </Link>
+                    )}
+
+                    {isCompleted && (
+                        <Link
+                            href={`/challenges/${challenge.id}`}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-white/[0.08] text-slate-400 hover:text-slate-200 hover:bg-white/[0.04] transition-all"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <CheckCircle size={14} /> See Submissions
+                        </Link>
+                    )}
+
+                    {isUpcoming && (
+                        <Link
+                            href={`/challenges/${challenge.id}`}
+                            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold border border-amber-500/20 text-amber-400 hover:bg-amber-500/[0.07] transition-all"
+                            onClick={e => e.stopPropagation()}
+                        >
+                            <ArrowRight size={14} /> Preview Challenge
+                        </Link>
+                    )}
                 </div>
             </div>
 
