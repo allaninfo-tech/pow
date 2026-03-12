@@ -5,6 +5,7 @@ import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon } from '@/
 import { Zap, Users, Clock, CheckCircle2, AlertCircle, ArrowRight, Code2, Shield, Gauge, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import ParticipateButton from '@/components/ui/ParticipateButton';
+import ChallengeComments from '@/components/ui/ChallengeComments';
 
 export default async function ChallengeDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -204,6 +205,11 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                                 </div>
                             </div>
                         )}
+
+                        {/* Discussion / Comments */}
+                        <div className="mt-6 h-[500px]">
+                            <ChallengeComments challengeId={c.id} userId={userId} />
+                        </div>
                     </div>
 
                     {/* Right sidebar */}
