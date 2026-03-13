@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { cn, formatRelativeTime, getAvatarColor } from '@/lib/utils';
+import { cn, formatRelativeTime } from '@/lib/utils';
 import { MessageSquare, Send, Loader2 } from 'lucide-react';
 import Avatar from './Avatar';
 

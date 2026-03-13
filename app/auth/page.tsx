@@ -130,9 +130,9 @@ export default function AuthPage() {
             return;
         }
 
-        // Session is active — go straight to dashboard
+        // Session is active — go straight to onboarding
         router.refresh();
-        router.push('/dashboard');
+        router.push('/onboarding');
     };
 
     return (

@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_activity_log: {
+        Row: {
+          action: string
+          admin_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          admin_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          admin_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       badges: {
         Row: {
           description: string | null
@@ -40,6 +70,38 @@ export type Database = {
           type?: string | null
         }
         Relationships: []
+      }
+      challenge_comments: {
+        Row: {
+          challenge_id: string
+          content: string
+          created_at: string | null
+          id: string
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          content: string
+          created_at?: string | null
+          id?: string
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          content?: string
+          created_at?: string | null
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "challenge_comments_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       challenge_participants: {
         Row: {
@@ -136,6 +198,95 @@ export type Database = {
           tags?: string[] | null
           technical_constraints?: string[] | null
           tier?: number | null
+          title?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string | null
+          id: string
+          link: string | null
+          message: string | null
+          read: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          read?: boolean | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          message?: string | null
+          read?: boolean | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      participations: {
+        Row: {
+          challenge_id: string
+          id: string
+          joined_at: string | null
+          user_id: string
+        }
+        Insert: {
+          challenge_id: string
+          id?: string
+          joined_at?: string | null
+          user_id: string
+        }
+        Update: {
+          challenge_id?: string
+          id?: string
+          joined_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "participations_challenge_id_fkey"
+            columns: ["challenge_id"]
+            isOneToOne: false
+            referencedRelation: "challenges"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_announcements: {
+        Row: {
+          body: string
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          title: string
+        }
+        Insert: {
+          body: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          title: string
+        }
+        Update: {
+          body?: string
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
           title?: string
         }
         Relationships: []
@@ -458,12 +609,14 @@ export type Database = {
           last_active_at: string | null
           league: string | null
           location: string | null
+          notification_prefs: Json | null
           project_count: number | null
           role: string | null
           role_rank: number | null
           solo_projects: number | null
           squad_id: string | null
           squad_projects: number | null
+          status: string | null
           streak: number | null
           tech_stack: Json | null
           total_points: number | null
@@ -486,12 +639,14 @@ export type Database = {
           last_active_at?: string | null
           league?: string | null
           location?: string | null
+          notification_prefs?: Json | null
           project_count?: number | null
           role?: string | null
           role_rank?: number | null
           solo_projects?: number | null
           squad_id?: string | null
           squad_projects?: number | null
+          status?: string | null
           streak?: number | null
           tech_stack?: Json | null
           total_points?: number | null
@@ -514,12 +669,14 @@ export type Database = {
           last_active_at?: string | null
           league?: string | null
           location?: string | null
+          notification_prefs?: Json | null
           project_count?: number | null
           role?: string | null
           role_rank?: number | null
           solo_projects?: number | null
           squad_id?: string | null
           squad_projects?: number | null
+          status?: string | null
           streak?: number | null
           tech_stack?: Json | null
           total_points?: number | null

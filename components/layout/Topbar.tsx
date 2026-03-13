@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client';
 import { Bell, Menu, ChevronRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import NotificationBell from '@/components/ui/NotificationBell';
 
 const breadcrumbMap: Record<string, string> = {
     dashboard: 'Dashboard',
@@ -51,22 +52,16 @@ function Breadcrumb() {
 }
 
 export default function Topbar() {
-    const { ui, toggleSidebar, unreadNotifications, toggleNotifications } = useStore();
-    const [announcementCount, setAnnouncementCount] = useState(0);
+    const { toggleSidebar } = useStore();
+    const [userId, setUserId] = useState<string | null>(null);
 
-    // Fetch count of active announcements to show on the bell badge
+    // Fetch current user id
     useEffect(() => {
         const supabase = createClient();
-        (supabase as any)
-            .from('platform_announcements')
-            .select('id', { count: 'exact', head: true })
-            .eq('is_active', true)
-            .then(({ count }: { count: number | null }) => {
-                setAnnouncementCount(count || 0);
-            });
+        supabase.auth.getUser().then(({ data: { user } }) => {
+            if (user) setUserId(user.id);
+        });
     }, []);
-
-    const totalBadge = unreadNotifications + announcementCount;
 
     return (
         <header className="topbar-container h-16 border-b flex items-center gap-4 px-6 sticky top-0 z-30 backdrop-blur-xl">
@@ -85,21 +80,7 @@ export default function Topbar() {
             </div>
 
             {/* Notifications bell */}
-            <button
-                onClick={toggleNotifications}
-                className={cn(
-                    'relative p-2 rounded-lg transition-all',
-                    'text-slate-500 hover:text-slate-300 hover:bg-white/[0.05]'
-                )}
-                aria-label="View notifications"
-            >
-                <Bell size={18} />
-                {totalBadge > 0 && (
-                    <span className="absolute top-1 right-1 min-w-[18px] h-[18px] rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center px-1">
-                        {totalBadge > 9 ? '9+' : totalBadge}
-                    </span>
-                )}
-            </button>
+            <NotificationBell userId={userId} />
         </header>
     );
 }

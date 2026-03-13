@@ -110,6 +110,7 @@ export default async function SquadPage() {
         <SquadClient
             initialMySquad={formattedMySquad}
             initialRecruitingSquads={formattedRecruiting}
+            userId={user.id}
         />
     );
 }

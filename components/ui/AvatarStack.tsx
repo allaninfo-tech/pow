@@ -35,7 +35,7 @@ export default function AvatarStack({ users, totalCount, className, size = 'sm' 
                     <div
                         key={i}
                         className={cn(
-                            "relative rounded-full border-2 border-slate-950 flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br transition-transform hover:-translate-y-1 hover:z-20 cursor-default",
+                            "relative rounded-full border-2 border-slate-950 flex items-center justify-center overflow-hidden flex-shrink-0 bg-gradient-to-br transition-transform md:hover:-translate-y-1 md:hover:z-20 cursor-default",
                             sClass,
                             getAvatarColor(initials)
                         )}

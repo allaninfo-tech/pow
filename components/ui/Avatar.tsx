@@ -4,6 +4,7 @@ import { cn, getAvatarColor } from '@/lib/utils';
 
 interface AvatarProps {
     initials: string | null | undefined;
+    photoUrl?: string | null;
     size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
     className?: string;
     online?: boolean;
@@ -17,15 +18,16 @@ const sizeMap = {
     xl: 'w-16 h-16 text-xl rounded-2xl',
 };
 
-export default function Avatar({ initials, size = 'md', className, online }: AvatarProps) {
+export default function Avatar({ initials, photoUrl, size = 'md', className, online }: AvatarProps) {
     const displayInitials = initials || '?';
-    const isImage = displayInitials.startsWith('http');
-    
+    // photoUrl prop takes priority, otherwise auto-detect http URLs placed in the initials field
+    const imageSrc = photoUrl || (displayInitials.startsWith('http') ? displayInitials : null);
+
     return (
         <div className={cn('relative flex-shrink-0', className)}>
-            {isImage ? (
+            {imageSrc ? (
                 <img
-                    src={displayInitials}
+                    src={imageSrc}
                     alt="Avatar"
                     className={cn('object-cover', sizeMap[size])}
                 />

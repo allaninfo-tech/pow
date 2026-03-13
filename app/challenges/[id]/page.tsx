@@ -5,7 +5,7 @@ import { cn, getTierColor, getTierLabel, formatTimeUntil, getRoleIcon } from '@/
 import { Zap, Users, Clock, CheckCircle2, AlertCircle, ArrowRight, Code2, Shield, Gauge, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 import ParticipateButton from '@/components/ui/ParticipateButton';
-import ChallengeComments from '@/components/ui/ChallengeComments';
+import ChallengeStatBar from '@/components/ui/ChallengeStatBar';
 
 export default async function ChallengeDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -91,24 +91,23 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                     <h1 className="text-2xl font-black text-white mb-2">{c.title}</h1>
                     <p className="text-slate-400">{c.shortDescription}</p>
 
-                    {/* Stats row */}
-                    <div className="flex flex-wrap items-center gap-6 mt-5 pt-5 border-t border-white/[0.06]">
+                    {/* Stats row — participants, submissions, discussion (popup) */}
+                    <div className="flex flex-wrap items-center gap-2 mt-5 pt-5 border-t border-white/[0.06]">
                         {c.deadline && (
-                            <div className="flex items-center gap-2 text-sm">
+                            <div className="flex items-center gap-2 text-sm mr-2">
                                 <Clock size={16} className={urgency ? 'text-rose-400' : 'text-slate-400'} />
                                 <span className={urgency ? 'text-rose-400 font-semibold' : 'text-slate-400'}>
                                     {formatTimeUntil(c.deadline)} remaining
                                 </span>
                             </div>
                         )}
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                            <Users size={16} />
-                            {c.participantsCount} participants
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-slate-400">
-                            <Code2 size={16} />
-                            {c.submissionsCount} submissions
-                        </div>
+                        <ChallengeStatBar
+                            challengeId={c.id}
+                            challengeTitle={c.title}
+                            participantsCount={c.participantsCount}
+                            submissionsCount={c.submissionsCount}
+                            userId={userId}
+                        />
                         <div className="flex flex-wrap gap-1.5 ml-auto">
                             {c.requiredRoles.map(r => (
                                 <span key={r} className="chip text-xs">{getRoleIcon(r as any)} {r}</span>
@@ -205,11 +204,6 @@ export default async function ChallengeDetailPage({ params }: { params: Promise<
                                 </div>
                             </div>
                         )}
-
-                        {/* Discussion / Comments */}
-                        <div className="mt-6 h-[500px]">
-                            <ChallengeComments challengeId={c.id} userId={userId} />
-                        </div>
                     </div>
 
                     {/* Right sidebar */}

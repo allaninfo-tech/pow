@@ -4,7 +4,8 @@ import { useState } from 'react';
 import AppShell from '@/components/layout/AppShell';
 import Avatar from '@/components/ui/Avatar';
 import { cn, getRoleIcon, getRoleShort, formatDate } from '@/lib/utils';
-import { Users, Plus, Crown, Github, Link2, Search, Shield, UserPlus, Check, X, ExternalLink } from 'lucide-react';
+import { Users, Plus, Crown, Github, Link2, Search, Shield, UserPlus, Check, X, ExternalLink, MessageSquare } from 'lucide-react';
+import SquadChat from '@/components/ui/SquadChat';
 
 // Function to generate a deterministic abstract gradient based on a string (e.g. squad id)
 function getSquadGradient(seed: string) {
@@ -23,7 +24,7 @@ function getSquadGradient(seed: string) {
     return gradients[Math.abs(hash) % gradients.length];
 }
 
-export default function SquadClient({ initialMySquad, initialRecruitingSquads }: { initialMySquad: any | null, initialRecruitingSquads: any[] }) {
+export default function SquadClient({ initialMySquad, initialRecruitingSquads, userId }: { initialMySquad: any | null, initialRecruitingSquads: any[], userId: string }) {
     const [tab, setTab] = useState<'my-squad' | 'find' | 'create'>(initialMySquad ? 'my-squad' : 'find');
     const [inviteName, setInviteName] = useState('');
 
@@ -190,6 +191,11 @@ export default function SquadClient({ initialMySquad, initialRecruitingSquads }:
                                     <button className="btn-primary px-4 py-2 text-sm">Send Invite</button>
                                 </div>
                                 <p className="text-xs text-slate-500 mt-2">No pending invites</p>
+                            </div>
+
+                            {/* Squad Chat */}
+                            <div className="lg:fixed lg:bottom-6 lg:right-6 lg:w-96 lg:z-40">
+                                <SquadChat squadId={mySquad.id} userId={userId} />
                             </div>
                         </div>
                     ) : (

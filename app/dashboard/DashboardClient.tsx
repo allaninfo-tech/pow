@@ -4,11 +4,14 @@ import AppShell from '@/components/layout/AppShell';
 import LeagueBadge from '@/components/ui/LeagueBadge';
 import Avatar from '@/components/ui/Avatar';
 import { cn, getScoreColor, formatTimeUntil, formatRelativeTime, getRoleIcon, getTierLabel } from '@/lib/utils';
-import { Zap, TrendingUp, Code2, Star, Clock, ArrowRight, Flame, Target, GitCommit, Award, AlertTriangle, Trophy, CheckCircle2, InboxIcon } from 'lucide-react';
+import { Zap, TrendingUp, Code2, Star, Clock, ArrowRight, Flame, Target, GitCommit, Award, AlertTriangle, Trophy, CheckCircle2, InboxIcon, Users } from 'lucide-react';
 import Link from 'next/link';
 import {
-    RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip,
+    RadarChart, PolarGrid, PolarAngleAxis, Radar, ResponsiveContainer, Tooltip as RechartsTooltip,
 } from 'recharts';
+import { useEffect, useMemo } from 'react';
+import { triggerConfetti, triggerLeagueUpConfetti } from '@/lib/confetti';
+import ContributionGraph from '@/components/ui/ContributionGraph';
 
 function getGreeting(): { text: string; emoji: string } {
     const hour = new Date().getHours();
@@ -32,7 +35,7 @@ function ScoreRadar({ scores }: { scores: { codeQuality: number; architecture: n
                 <PolarGrid stroke="rgba(255,255,255,0.06)" />
                 <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10 }} />
                 <Radar dataKey="value" stroke="#6c63ff" fill="#6c63ff" fillOpacity={0.15} strokeWidth={2} dot={{ fill: '#6c63ff', r: 3 }} />
-                <Tooltip
+                <RechartsTooltip
                     contentStyle={{ background: 'rgba(15,21,38,0.95)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, fontSize: 12 }}
                     labelStyle={{ color: '#e2e8f0' }}
                 />
@@ -78,6 +81,32 @@ export default function DashboardClient({
     recentSubmissions: any[];
 }) {
     const greeting = getGreeting();
+
+    // Confetti logic for gamification hooks
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        
+        const storageKey = `proofstack_league_${currentUser.id}`;
+        const prevLeague = localStorage.getItem(storageKey);
+        
+        // Brand new user first time seeing dashboard
+        if (!prevLeague && currentUser.projectCount === 0 && currentUser.league === 'Newbie') {
+            triggerConfetti();
+        } 
+        // Returning user who just leveled up (simplistic hierarchy check)
+        else if (prevLeague && prevLeague !== currentUser.league) {
+            const leagueValues = { 'Newbie': 1, 'Pro': 2, 'Elite': 3 };
+            const prevVal = leagueValues[prevLeague as keyof typeof leagueValues] || 0;
+            const currVal = leagueValues[currentUser.league as keyof typeof leagueValues] || 0;
+            
+            if (currVal > prevVal) {
+                triggerLeagueUpConfetti();
+            }
+        }
+
+        // Save current league state
+        localStorage.setItem(storageKey, currentUser.league);
+    }, [currentUser.id, currentUser.league, currentUser.projectCount]);
 
     // Use real avg scores from submissions if available, otherwise show zeros
     const avgScores = {
@@ -401,6 +430,28 @@ export default function DashboardClient({
                                 </div>
                             </div>
                         )}
+
+                        {/* Contribution Heatmap */}
+                        <div className="glass-card p-5">
+                            <h2 className="text-sm font-semibold text-slate-300 mb-4 flex items-center gap-2">
+                                <Flame size={16} className="text-rose-400" />
+                                Contribution Activity
+                            </h2>
+                            <div className="bg-slate-900/40 rounded-xl p-4 border border-white/5">
+                                <ContributionGraph data={
+                                    recentSubmissions.reduce((acc: any[], sub) => {
+                                        const dateStr = new Date(sub.submittedAt).toISOString().split('T')[0];
+                                        const existing = acc.find(a => a.date === dateStr);
+                                        if (existing) {
+                                            existing.count += 1;
+                                        } else {
+                                            acc.push({ date: dateStr, count: 1 });
+                                        }
+                                        return acc;
+                                    }, [])
+                                } />
+                            </div>
+                        </div>
 
                         {/* Tech stack */}
                         {currentUser.techStack && currentUser.techStack.length > 0 ? (

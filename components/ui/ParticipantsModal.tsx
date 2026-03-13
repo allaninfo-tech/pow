@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { createClient } from '@/lib/supabase/client';
 import Avatar from '@/components/ui/Avatar';
 import LeagueBadge from '@/components/ui/LeagueBadge';
@@ -48,6 +49,7 @@ export default function ParticipantsModal({
                     submitted_at,
                     users (
                         display_name,
+                        username,
                         avatar,
                         league,
                         role
@@ -57,9 +59,9 @@ export default function ParticipantsModal({
                 .order('total_score', { ascending: false });
 
             if (data) {
-                // Also check challenge_participants for users who joined but haven't submitted yet
+                // Also check participations for users who joined but haven't submitted yet
                 const { data: joinedOnly } = await supabase
-                    .from('challenge_participants')
+                    .from('participations')
                     .select(`
                         user_id,
                         joined_at,
@@ -79,9 +81,9 @@ export default function ParticipantsModal({
                     const u = s.users as any;
                     return {
                         userId: s.user_id || '',
-                        username: s.username || '',
+                        username: u?.username || s.username || '',
                         displayName: u?.display_name || s.username || 'Developer',
-                        avatar: u?.avatar || (s.username || 'D').slice(0, 2).toUpperCase(),
+                        avatar: u?.avatar || null,
                         league: u?.league || null,
                         role: u?.role || null,
                         submissionStatus: s.status,
@@ -98,7 +100,7 @@ export default function ParticipantsModal({
                             userId: j.user_id,
                             username: u?.username || '',
                             displayName: u?.display_name || u?.username || 'Developer',
-                            avatar: u?.avatar || (u?.username || 'D').slice(0, 2).toUpperCase(),
+                            avatar: u?.avatar || null,
                             league: u?.league || null,
                             role: u?.role || null,
                             submissionStatus: null,
@@ -137,9 +139,14 @@ export default function ParticipantsModal({
         return status;
     };
 
-    return (
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
+
+    if (!mounted) return null;
+
+    return createPortal(
         <div
-            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4"
             style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
             onClick={handleBackdropClick}
         >
@@ -184,7 +191,7 @@ export default function ParticipantsModal({
                                 href={`/profile/${p.username}`}
                                 className="flex items-center gap-3 p-3 rounded-xl bg-white/[0.02] border border-white/[0.04] hover:border-indigo-500/25 hover:bg-indigo-500/[0.04] transition-all group"
                             >
-                                <Avatar initials={p.avatar} size="sm" />
+                                <Avatar initials={p.displayName.substring(0, 2).toUpperCase()} photoUrl={p.avatar} size="sm" />
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-semibold text-slate-200 group-hover:text-white transition-colors truncate">
                                         {p.displayName}
@@ -214,6 +221,7 @@ export default function ParticipantsModal({
                     )}
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
