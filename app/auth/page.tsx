@@ -55,7 +55,7 @@ export default function AuthPage() {
         await supabase.auth.signInWithOAuth({
             provider,
             options: {
-                redirectTo: `${window.location.origin}/auth/callback`,
+                redirectTo: `https://proofofstack.vercel.app/auth/callback`,
             },
         });
         // Page will redirect — no need to setLoading(false)
